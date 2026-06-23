@@ -1,0 +1,97 @@
+.epi {
+  border: 1px solid rgba(124, 156, 255, 0.4);
+  background: rgba(124, 156, 255, 0.06);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.epi-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.epi-head h2 {
+  font-size: 18px;
+}
+.epi-tag {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+.epi-lead {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 12px 0 4px;
+  max-width: 80ch;
+}
+.epi-lead code,
+.epi-note code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: var(--accent-2);
+}
+.epi-sub {
+  font-size: 14px;
+  margin: 20px 0 10px;
+  color: var(--text-h);
+}
+.epi-pipe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px;
+}
+.epi-stepwrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.epi-step {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 110px;
+}
+.epi-step-label {
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 13.5px;
+}
+.epi-step-sub {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+.epi-arrow {
+  color: var(--accent);
+  font-size: 18px;
+  padding: 0 2px;
+}
+.epi-note {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 12px 0 0;
+  max-width: 80ch;
+}
+.epi-links {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.epi-roadmap {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}

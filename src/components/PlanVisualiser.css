@@ -1,0 +1,144 @@
+.viz {
+  margin-top: 18px;
+}
+
+.viz-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.viz-btn {
+  background: var(--panel-2);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 14px;
+}
+.viz-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.viz-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.viz-play {
+  min-width: 92px;
+  font-weight: 600;
+}
+.viz-slider {
+  flex: 1;
+  min-width: 160px;
+  accent-color: var(--accent);
+}
+.viz-counter {
+  font-size: 13px;
+  color: var(--text-dim);
+  min-width: 96px;
+  text-align: right;
+}
+
+.viz-action {
+  margin: 14px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.viz-action-code {
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.viz-action-init {
+  color: var(--text-dim);
+  font-style: italic;
+}
+.viz-goal-badge {
+  background: rgba(92, 214, 179, 0.15);
+  border: 1px solid rgba(92, 214, 179, 0.5);
+  color: var(--accent-2);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.viz-body {
+  display: block;
+}
+.viz-body.viz-has-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .viz-body.viz-has-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.viz-grid-pane {
+  padding-top: 6px;
+}
+
+.viz-diff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.viz-facts-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.viz-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.viz-fact {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.viz-added {
+  background: rgba(92, 214, 179, 0.13);
+  border-color: rgba(92, 214, 179, 0.5);
+  color: var(--accent-2);
+}
+.viz-deleted {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.45);
+  color: #ff9b9b;
+  text-decoration: line-through;
+}
+.viz-goal {
+  margin-top: 16px;
+}
+.viz-goal-row {
+  margin-right: 6px;
+  margin-bottom: 6px;
+  display: inline-block;
+  color: var(--text-dim);
+}
+.viz-goal-met {
+  color: var(--accent-2);
+  border-color: rgba(92, 214, 179, 0.5);
+}
+.viz-warn {
+  margin-top: 14px;
+  color: var(--warn);
+  font-size: 13px;
+}

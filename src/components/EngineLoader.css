@@ -1,0 +1,43 @@
+.engine-loader {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 180, 84, 0.35);
+  background: rgba(255, 180, 84, 0.06);
+  border-radius: 10px;
+}
+.engine-loader-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+.engine-loader-fill {
+  height: 100%;
+  width: 35%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--warn), var(--accent));
+  animation: engine-indeterminate 1.3s ease-in-out infinite;
+}
+@keyframes engine-indeterminate {
+  0% {
+    margin-left: -35%;
+  }
+  100% {
+    margin-left: 100%;
+  }
+}
+.engine-loader-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+}
+.engine-loader-text strong {
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 600;
+}
+.engine-loader-text span {
+  color: var(--text-dim);
+  font-size: 13px;
+}

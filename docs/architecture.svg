@@ -1,0 +1,72 @@
+<svg viewBox="0 0 920 600" xmlns="http://www.w3.org/2000/svg" role="img" font-family="Segoe UI, system-ui, -apple-system, sans-serif">
+  <title>PDDL Playground — where the work runs</title>
+  <desc>The server serves only static files. Pyodide and pyperplan load from the jsDelivr CDN. The planner and visualiser run inside each student's own browser, so there is no shared solver to overload.</desc>
+
+  <rect x="0" y="0" width="920" height="600" rx="16" fill="#f8fafc"/>
+
+  <text x="460" y="42" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">Where the work runs</text>
+  <text x="460" y="68" text-anchor="middle" font-size="14" fill="#475569">The planner runs in each student’s browser — not on your server</text>
+
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- Your server (neutral = delivery only) -->
+  <rect x="50" y="110" width="250" height="120" rx="12" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+  <text x="175" y="148" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2937">Your server</text>
+  <text x="175" y="170" text-anchor="middle" font-size="13" fill="#475569">portfolio subdomain</text>
+  <text x="175" y="196" text-anchor="middle" font-size="13" fill="#334155">Static files only · ~196 KB</text>
+  <text x="175" y="216" text-anchor="middle" font-size="12.5" fill="#64748b">no solver · no database</text>
+
+  <!-- CDN (neutral = delivery only) -->
+  <rect x="50" y="270" width="250" height="120" rx="12" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+  <text x="175" y="308" text-anchor="middle" font-size="16" font-weight="700" fill="#1f2937">jsDelivr CDN</text>
+  <text x="175" y="330" text-anchor="middle" font-size="13" fill="#475569">not your server</text>
+  <text x="175" y="356" text-anchor="middle" font-size="13" fill="#334155">Pyodide + pyperplan · ~15 MB</text>
+  <text x="175" y="376" text-anchor="middle" font-size="12.5" fill="#64748b">first load only, then cached</text>
+
+  <!-- Browser (teal = computation) -->
+  <rect x="380" y="95" width="490" height="380" rx="14" fill="#ffffff" stroke="#0d9488" stroke-width="2.5"/>
+  <text x="625" y="126" text-anchor="middle" font-size="16" font-weight="700" fill="#0f766e">Each student’s browser</text>
+  <text x="625" y="147" text-anchor="middle" font-size="13" fill="#0d9488">runs on their own computer</text>
+
+  <rect x="445" y="165" width="360" height="52" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="625" y="189" text-anchor="middle" font-size="15" font-weight="700" fill="#1e293b">1 · Editors</text>
+  <text x="625" y="207" text-anchor="middle" font-size="12.5" fill="#64748b">domain + problem (PDDL)</text>
+
+  <rect x="445" y="237" width="360" height="58" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
+  <text x="625" y="261" text-anchor="middle" font-size="15" font-weight="700" fill="#0f766e">2 · pyperplan in WebAssembly</text>
+  <text x="625" y="281" text-anchor="middle" font-size="12.5" fill="#0f766e">runs on the student’s CPU</text>
+
+  <rect x="445" y="315" width="360" height="52" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="625" y="339" text-anchor="middle" font-size="15" font-weight="700" fill="#1e293b">3 · Plan</text>
+  <text x="625" y="357" text-anchor="middle" font-size="12.5" fill="#64748b">sequence of actions</text>
+
+  <rect x="445" y="387" width="360" height="58" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
+  <text x="625" y="411" text-anchor="middle" font-size="15" font-weight="700" fill="#0f766e">4 · Visualiser + grid</text>
+  <text x="625" y="431" text-anchor="middle" font-size="12.5" fill="#0f766e">replays the plan, state by state</text>
+
+  <!-- arrows between steps -->
+  <line x1="625" y1="217" x2="625" y2="236" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="625" y1="295" x2="625" y2="314" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="625" y1="367" x2="625" y2="386" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- arrows from server + CDN into the browser -->
+  <line x1="302" y1="160" x2="377" y2="180" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="345" y="150" text-anchor="middle" font-size="11.5" fill="#475569">static page</text>
+  <line x1="302" y1="330" x2="377" y2="300" stroke="#64748b" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="345" y="345" text-anchor="middle" font-size="11.5" fill="#475569">runtime (cached)</text>
+
+  <!-- legend -->
+  <rect x="50" y="497" width="15" height="15" rx="3" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5"/>
+  <text x="73" y="509" font-size="12.5" fill="#475569">Just delivers files — no computation</text>
+  <rect x="360" y="497" width="15" height="15" rx="3" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+  <text x="383" y="509" font-size="12.5" fill="#0f766e">Where solving happens — student’s machine</text>
+
+  <!-- takeaway -->
+  <rect x="50" y="535" width="820" height="50" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="460" y="557" text-anchor="middle" font-size="14" font-weight="700" fill="#065f46">100 students = 100 independent browsers — your server only serves static files.</text>
+  <text x="460" y="576" text-anchor="middle" font-size="12.5" fill="#047857">No shared solver to overload → it stays fast no matter how many use it at once.</text>
+</svg>

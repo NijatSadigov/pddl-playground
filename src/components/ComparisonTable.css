@@ -1,0 +1,78 @@
+.cmp {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 18px 20px;
+}
+.cmp-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.cmp-head h2 {
+  font-size: 18px;
+}
+.cmp-progress {
+  font-size: 13px;
+  color: var(--warn);
+}
+.cmp-note {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 8px 0 14px;
+}
+.cmp-best-key {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+.cmp-scroll {
+  overflow-x: auto;
+}
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.cmp-table th,
+.cmp-table td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.cmp-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.cmp-label {
+  color: var(--text-h);
+}
+.cmp-best {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.cmp-unsolved {
+  color: var(--text-dim);
+}
+.cmp-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(124, 156, 255, 0.14);
+  border: 1px solid rgba(124, 156, 255, 0.4);
+  color: var(--accent);
+}
+.cmp-view {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.cmp-view:hover {
+  border-color: var(--accent);
+}

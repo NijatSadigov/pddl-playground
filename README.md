@@ -77,6 +77,20 @@ host), just serve `dist/` as the document root.
 npm run preview   # serves the built dist/ locally; open the printed URL, click Solve
 ```
 
+### Optional: enable epistemic (E-PDDL) solving
+
+By default the site is fully offline and epistemic examples are *explain-only*.
+To enable real epistemic solving, deploy the separate
+[`pddl-epistemic-backend`](../pddl-epistemic-backend) service and build the site
+with its URL:
+
+```bash
+VITE_EPISTEMIC_API=https://epistemic.yourdomain.com npm run build
+```
+
+The epistemic examples then gain a **"Solve on server"** button. With the
+variable unset, nothing changes and the build stays 100% static/offline.
+
 ---
 
 ## Features

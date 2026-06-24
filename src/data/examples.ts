@@ -359,6 +359,47 @@ const COIN_PROBLEM = `;; Goal involves NESTED knowledge — the kind only episte
               (! [b][a] heads))))
 `;
 
+// A real, minimal PDKBDDL problem (from AI-Planning/epistemic-domains). Abstract
+// (p, q) but genuinely solvable by the Phase-2 backend (pdkb-planning). Notation:
+//   [a](p)  agent a knows p     <a>(p)  a considers p possible     !p  not p
+const CLOSURE_DOMAIN = `;; Real PDKBDDL syntax — solvable when an epistemic backend is connected.
+;;   [a](p)  a knows p      <a>(p)  a considers p possible      !p  not p
+(define (domain closure)
+    (:agents a)
+    (:types )
+    (:constants )
+    (:predicates (p) (q))
+
+    (:action apply
+        :derive-condition   always
+        :precondition       (and )
+        :effect             (and [a](p))
+    )
+
+    (:action check
+        :derive-condition   always
+        :precondition       (and <a>(p))
+        :effect             (q)
+    )
+)
+`;
+
+const CLOSURE_PROBLEM = `(define (problem prob)
+    (:domain closure)
+
+    (:projection )
+    (:depth 2)
+    (:task valid_generation)
+
+    (:init-type complete)
+    (:init
+        [a](!p)
+    )
+
+    (:goal (q))
+)
+`;
+
 export const EXAMPLES: Example[] = [
   {
     id: 'minefield',
@@ -402,11 +443,20 @@ export const EXAMPLES: Example[] = [
   },
   {
     id: 'coin-epistemic',
-    name: 'Coin in the Box (E-PDDL · epistemic)',
+    name: 'Coin in the Box (epistemic · illustrative)',
     description:
-      'An epistemic-planning scenario about what agents KNOW. Shown for exploration — epistemic problems are solved by compiling to classical planning, not in the browser.',
+      'A readable epistemic scenario about what agents KNOW. Illustrative syntax for learning the ideas — not valid PDKBDDL, so it will not solve on the backend.',
     domain: COIN_DOMAIN,
     problem: COIN_PROBLEM,
+    epistemic: true,
+  },
+  {
+    id: 'closure-pdkbddl',
+    name: 'Closure (real PDKBDDL · backend-solvable)',
+    description:
+      'A minimal but real PDKBDDL problem. Abstract, but genuinely solvable when an epistemic backend (pdkb-planning + Fast Downward) is connected.',
+    domain: CLOSURE_DOMAIN,
+    problem: CLOSURE_PROBLEM,
     epistemic: true,
   },
 ];

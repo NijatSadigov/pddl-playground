@@ -5,6 +5,11 @@ import { EngineLoader } from './components/EngineLoader';
 import { PlanVisualiser } from './components/PlanVisualiser';
 import { ComparisonTable, type ComparisonRow } from './components/ComparisonTable';
 import { EpistemicPanel } from './components/EpistemicPanel';
+import {
+  epistemicApiConfigured,
+  solveEpistemic,
+  type EpistemicResult,
+} from './solver/epistemicSolver';
 import { EXAMPLES, looksEpistemic } from './data/examples';
 import { SOLVER_PRESETS, DEFAULT_PRESET_ID } from './solver/presets';
 import {
@@ -118,6 +123,9 @@ export default function App() {
   const [compileNeg, setCompileNeg] = useState(true);
   const [compiledNote, setCompiledNote] = useState<string | null>(null);
 
+  const [epiSolving, setEpiSolving] = useState(false);
+  const [epiResult, setEpiResult] = useState<EpistemicResult | null>(null);
+
   const preset = useMemo(
     () => SOLVER_PRESETS.find((p) => p.id === presetId) ?? SOLVER_PRESETS[0],
     [presetId],
@@ -203,6 +211,16 @@ export default function App() {
     setSolveError(null);
     setComparison(null);
     setCompiledNote(null);
+    setEpiResult(null);
+  }
+
+  async function solveEpistemicHandler() {
+    setEpiSolving(true);
+    setEpiResult(null);
+    // PDKBDDL is a single file; send domain + problem concatenated.
+    const result = await solveEpistemic(`${domain}\n\n${problem}`);
+    setEpiResult(result);
+    setEpiSolving(false);
   }
 
   // The text actually sent to the solver. If the domain uses negative
@@ -513,7 +531,14 @@ export default function App() {
       </section>
 
       <section className="results">
-        {isEpistemic && <EpistemicPanel />}
+        {isEpistemic && (
+          <EpistemicPanel
+            apiConfigured={epistemicApiConfigured()}
+            solving={epiSolving}
+            result={epiResult}
+            onSolve={solveEpistemicHandler}
+          />
+        )}
 
         {!isEpistemic && compiledNote && (
           <div className="compiled-note">⚙ {compiledNote}</div>

@@ -1,8 +1,10 @@
+import type { EpistemicResult } from '../solver/epistemicSolver';
 import './EpistemicPanel.css';
 
-// Shown when the editor holds an epistemic (E-PDDL) domain. Epistemic planning
-// can't be solved in the browser, so instead of a plan we explain HOW it is
-// solved — by compiling to classical planning (RP-MEP / pdkb-planning).
+// Shown when the editor holds an epistemic (E-PDDL / PDKBDDL) domain. Epistemic
+// planning can't be solved in the browser; we explain HOW it is solved (compile
+// to classical planning), and — if an epistemic backend is configured — offer to
+// solve it on the server.
 
 const STEPS = [
   { label: 'E-PDDL', sub: 'what agents know' },
@@ -11,24 +13,80 @@ const STEPS = [
   { label: 'Fast Downward', sub: 'finds the plan' },
 ];
 
-export function EpistemicPanel() {
+interface Props {
+  apiConfigured: boolean;
+  solving: boolean;
+  result: EpistemicResult | null;
+  onSolve: () => void;
+}
+
+export function EpistemicPanel({
+  apiConfigured,
+  solving,
+  result,
+  onSolve,
+}: Props) {
   return (
     <div className="epi">
       <div className="epi-head">
-        <h2>Epistemic planning (E-PDDL)</h2>
-        <span className="epi-tag">explorer — not solved in-browser</span>
+        <h2>Epistemic planning</h2>
+        <span className="epi-tag">
+          {apiConfigured ? 'solved on the server' : 'explorer — not solved in-browser'}
+        </span>
       </div>
 
       <p className="epi-lead">
         Epistemic planning reasons about what <strong>agents know and believe</strong>,
-        not just facts about the world. Goals can nest knowledge — e.g.{' '}
-        <code>[a] heads</code> ("a knows the coin is heads") and{' '}
-        <code>![b][a] heads</code> ("b does <em>not</em> know that a knows it").
-        You can write and explore it here; solving it needs a specialised
-        planner.
+        not just facts about the world. Knowledge can nest — e.g. <code>[a](p)</code>{' '}
+        ("a knows p"), <code>&lt;a&gt;(p)</code> ("a considers p possible"), and{' '}
+        <code>[a][b](p)</code> ("a knows that b knows p").
       </p>
 
-      <h3 className="epi-sub">How it's actually solved: compile to classical planning</h3>
+      {apiConfigured && (
+        <div className="epi-solve">
+          <button className="solve-btn" onClick={onSolve} disabled={solving}>
+            {solving ? 'Solving on server…' : 'Solve on server ▶'}
+          </button>
+          <span className="epi-solve-note">
+            Sends the problem to the epistemic backend (pdkb-planning + Fast
+            Downward). Network-dependent — the classical playground stays offline.
+          </span>
+
+          {result && (
+            <div
+              className={`epi-result${result.ok && result.plan && result.plan.length ? ' epi-ok' : ' epi-bad'}`}
+            >
+              {result.ok && result.plan && result.plan.length > 0 ? (
+                <>
+                  <strong>Plan ({result.plan.length} steps)</strong>
+                  <ol className="epi-plan">
+                    {result.plan.map((step, i) => (
+                      <li key={i}>
+                        <code>{step}</code>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              ) : result.error ? (
+                <strong>Could not solve: {result.error}</strong>
+              ) : (
+                <strong>
+                  Planner finished{typeof result.returncode === 'number' ? ` (code ${result.returncode})` : ''}{' '}
+                  but no plan was parsed — see raw output.
+                </strong>
+              )}
+              {result.output && (
+                <details className="epi-rawwrap">
+                  <summary>Raw planner output</summary>
+                  <pre className="epi-raw">{result.output}</pre>
+                </details>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <h3 className="epi-sub">How it's solved: compile to classical planning</h3>
       <div className="epi-pipe">
         {STEPS.map((s, i) => (
           <div className="epi-stepwrap" key={s.label}>
@@ -43,12 +101,12 @@ export function EpistemicPanel() {
       <p className="epi-note">
         The same trick as this app's negative-precondition compiler — a hard
         feature is <em>translated</em> into something a classical planner can
-        solve. The catch: the compiled output uses conditional effects, which the
-        in-browser solver (pyperplan) doesn't support, so the final step needs{' '}
+        solve. The compiled output uses conditional effects, which the in-browser
+        solver (pyperplan) doesn't support, so the final step runs{' '}
         <strong>Fast Downward</strong> on a real machine.
       </p>
 
-      <h3 className="epi-sub">To actually run epistemic plans</h3>
+      <h3 className="epi-sub">References</h3>
       <ul className="epi-links">
         <li>
           <a href="https://github.com/QuMuLab/pdkb-planning" target="_blank" rel="noreferrer">
@@ -70,11 +128,14 @@ export function EpistemicPanel() {
           and Muise et al., “Planning over multi-agent epistemic states” (2015).
         </li>
       </ul>
-      <p className="epi-note epi-roadmap">
-        Roadmap: a hosted “epistemic mode” (pdkb-planning + Fast Downward in a
-        container) could wire this up end-to-end — kept separate so the classical
-        playground stays fully offline.
-      </p>
+
+      {!apiConfigured && (
+        <p className="epi-note epi-roadmap">
+          Solving is disabled because no epistemic backend is configured. Set{' '}
+          <code>VITE_EPISTEMIC_API</code> at build time to point at a running{' '}
+          <code>pdkb-epistemic</code> service to enable "Solve on server".
+        </p>
+      )}
     </div>
   );
 }

@@ -69,10 +69,18 @@ export function EpistemicPanel({
                 </>
               ) : result.error ? (
                 <strong>Could not solve: {result.error}</strong>
+              ) : !result.ok ? (
+                <strong>
+                  The backend planner rejected this input
+                  {typeof result.returncode === 'number'
+                    ? ` (exit ${result.returncode})`
+                    : ''}
+                  . Check it is valid PDKBDDL — see the raw output below.
+                </strong>
               ) : (
                 <strong>
-                  Planner finished{typeof result.returncode === 'number' ? ` (code ${result.returncode})` : ''}{' '}
-                  but no plan was parsed — see raw output.
+                  Solved, but produced no plan steps (the goal may already
+                  hold).
                 </strong>
               )}
               {result.output && (

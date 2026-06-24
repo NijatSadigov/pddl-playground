@@ -316,49 +316,48 @@ const HANOI_PROBLEM = `;; Three discs, three pegs. Move the stack from peg1 to p
 
 // --- Epistemic planning (E-PDDL) — illustrative, NOT solved in-browser --------
 
-const COIN_DOMAIN = `;; ───────────────────────────────────────────────────────────────────────
-;; Coin in the Box — a classic EPISTEMIC-planning scenario (illustrative).
-;;
-;; Epistemic planning reasons about what AGENTS KNOW, not just world facts.
-;; Notation (epistemic logic / PDKB-style):
-;;     [a] p        agent a knows p
-;;     [a][b] p     a knows that b knows p        (knowledge can NEST)
-;;     !p           not p
-;;
-;; This is E-PDDL / PDKB-style syntax shown for teaching. It is NOT solved in
-;; the browser — see the panel below for how epistemic planners solve it (by
-;; compiling to classical planning). Exact grammar: Muise 2015; Fabiano 2021.
-;; ───────────────────────────────────────────────────────────────────────
+const COIN_DOMAIN = `;; Coin in the Box - a small REAL PDKBDDL epistemic example (backend-solvable).
+;;   [a](p)  agent a knows/believes p     <a>(p)  a considers p possible     !p  not p
+;; Doxastic (belief) planning: agent a revises its belief by peeking, then announces.
 (define (domain coin-in-the-box)
-  (:requirements :mep)               ; :mep = multi-agent epistemic planning
-  (:agents a b)
-  (:predicates (heads) (looking ?ag))
+    (:agents a)
+    (:types )
+    (:constants )
+    (:predicates (heads) (announced))
 
-  ;; Peeking: the agent comes to KNOW which way the coin faces.
-  (:action peek
-    :parameters (?ag)
-    :precondition (looking ?ag)
-    :effect (knows-whether ?ag heads))     ; [?ag] heads  or  [?ag] !heads
+    ;; a peeks and comes to believe the coin shows heads
+    (:action peek
+        :derive-condition   always
+        :precondition       (and )
+        :effect             (and [a](heads))
+    )
 
-  ;; Announcing: a public, truthful announcement of the coin value, after
-  ;; which everyone knows it — and everyone knows that everyone knows it.
-  (:action announce
-    :parameters (?ag)
-    :precondition (knows-whether ?ag heads)
-    :effect (common-knowledge heads)))     ; [a]heads, [b]heads, [a][b]heads …
+    ;; a announces, allowed once a considers heads possible
+    (:action announce
+        :derive-condition   always
+        :precondition       (and <a>(heads))
+        :effect             (and (announced))
+    )
+)
 `;
 
-const COIN_PROBLEM = `;; Goal involves NESTED knowledge — the kind only epistemic planning captures.
-(define (problem secret-keeper)
-  (:domain coin-in-the-box)
-  (:init
-    (heads)            ; the coin really is heads …
-    (looking a))       ; … and agent a is positioned to peek
-  ;; a should KNOW the coin is heads, while b must NOT know that a knows it:
-  (:goal (and ([a] heads)
-              (! [b][a] heads))))
-`;
+const COIN_PROBLEM = `;; Start: a believes the coin is NOT heads. Goal: it gets announced.
+;; Plan: (peek) then (announce).
+(define (problem prob)
+    (:domain coin-in-the-box)
 
+    (:projection )
+    (:depth 2)
+    (:task valid_generation)
+
+    (:init-type complete)
+    (:init
+        [a](!heads)
+    )
+
+    (:goal (announced))
+)
+`;
 // A real, minimal PDKBDDL problem (from AI-Planning/epistemic-domains). Abstract
 // (p, q) but genuinely solvable by the Phase-2 backend (pdkb-planning). Notation:
 //   [a](p)  agent a knows p     <a>(p)  a considers p possible     !p  not p
@@ -442,10 +441,10 @@ export const EXAMPLES: Example[] = [
     problem: HANOI_PROBLEM,
   },
   {
-    id: 'coin-epistemic',
-    name: 'Coin in the Box (epistemic · illustrative)',
+        id: 'coin-epistemic',
+    name: 'Coin in the Box (epistemic)',
     description:
-      'A readable epistemic scenario about what agents KNOW. Illustrative syntax for learning the ideas — not valid PDKBDDL, so it will not solve on the backend.',
+      'A small REAL PDKBDDL epistemic problem (belief revision). Solvable on the backend - plan: (peek) then (announce).',
     domain: COIN_DOMAIN,
     problem: COIN_PROBLEM,
     epistemic: true,

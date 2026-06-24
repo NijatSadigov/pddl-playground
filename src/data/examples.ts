@@ -362,7 +362,7 @@ const COIN_PROBLEM = `;; Goal involves NESTED knowledge — the kind only episte
 // A real, minimal PDKBDDL problem (from AI-Planning/epistemic-domains). Abstract
 // (p, q) but genuinely solvable by the Phase-2 backend (pdkb-planning). Notation:
 //   [a](p)  agent a knows p     <a>(p)  a considers p possible     !p  not p
-const CLOSURE_DOMAIN = `;; Real PDKBDDL syntax — solvable when an epistemic backend is connected.
+const CLOSURE_DOMAIN = `;; Real PDKBDDL syntax - solvable when an epistemic backend is connected.
 ;;   [a](p)  a knows p      <a>(p)  a considers p possible      !p  not p
 (define (domain closure)
     (:agents a)

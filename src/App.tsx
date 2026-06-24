@@ -11,6 +11,11 @@ import {
   type EpistemicResult,
 } from './solver/epistemicSolver';
 import { EXAMPLES, looksEpistemic } from './data/examples';
+
+// The app has two modes with separate example sets and UIs, chosen by a
+// top-level switch: classical PDDL (solved in-browser) and epistemic E-PDDL.
+const CLASSICAL_EXAMPLES = EXAMPLES.filter((e) => !e.epistemic);
+const EPISTEMIC_EXAMPLES = EXAMPLES.filter((e) => e.epistemic);
 import { SOLVER_PRESETS, DEFAULT_PRESET_ID } from './solver/presets';
 import {
   runPlanner,
@@ -131,9 +136,13 @@ export default function App() {
     [presetId],
   );
 
-  // Epistemic (E-PDDL) domains aren't solvable in-browser; the UI switches to a
-  // read-only explorer that explains how they're solved instead.
-  const isEpistemic = useMemo(() => looksEpistemic(domain), [domain]);
+  // Top-level mode. Epistemic (E-PDDL) uses a separate example set + UI and is
+  // solved on the optional backend, not in-browser.
+  const [mode, setMode] = useState<'classical' | 'epistemic'>(() =>
+    looksEpistemic(boot.domain) ? 'epistemic' : 'classical',
+  );
+  const isEpistemic = mode === 'epistemic';
+  const exampleList = isEpistemic ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
 
   // Preload the WASM runtime + planner in the background so the first solve is fast.
   useEffect(() => {
@@ -254,6 +263,13 @@ export default function App() {
     setDomain(ex.domain);
     setProblem(ex.problem);
     clearResults();
+  }
+
+  function switchMode(next: 'classical' | 'epistemic') {
+    if (next === mode) return;
+    setMode(next);
+    const list = next === 'epistemic' ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
+    if (list.length) loadExample(list[0].id);
   }
 
   // Parse + simulate a plan so it can be visualised. Failure here is non-fatal:
@@ -402,16 +418,37 @@ export default function App() {
           >
             {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
           </button>
-          <span
-            className={`engine-badge engine-${enginePhase}`}
-            title={engineError ?? undefined}
-          >
-            {ENGINE_LABEL[enginePhase]}
-          </span>
+          {!isEpistemic && (
+            <span
+              className={`engine-badge engine-${enginePhase}`}
+              title={engineError ?? undefined}
+            >
+              {ENGINE_LABEL[enginePhase]}
+            </span>
+          )}
         </div>
       </header>
 
       {showIntro && <Intro onDismiss={dismissIntro} />}
+
+      <div className="mode-switch" role="tablist" aria-label="Planning mode">
+        <button
+          role="tab"
+          aria-selected={!isEpistemic}
+          className={!isEpistemic ? 'active' : ''}
+          onClick={() => switchMode('classical')}
+        >
+          Classical PDDL
+        </button>
+        <button
+          role="tab"
+          aria-selected={isEpistemic}
+          className={isEpistemic ? 'active' : ''}
+          onClick={() => switchMode('epistemic')}
+        >
+          Epistemic E-PDDL
+        </button>
+      </div>
 
       <section className="toolbar">
         <label className="field">
@@ -420,10 +457,10 @@ export default function App() {
             value={exampleId}
             onChange={(e) => loadExample(e.target.value)}
           >
-            {!EXAMPLES.some((ex) => ex.id === exampleId) && (
+            {!exampleList.some((ex) => ex.id === exampleId) && (
               <option value="">Custom / shared</option>
             )}
-            {EXAMPLES.map((ex) => (
+            {exampleList.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.name}
               </option>
@@ -431,66 +468,61 @@ export default function App() {
           </select>
         </label>
 
-        <label className="field">
-          <span>Solver</span>
-          <select
-            value={presetId}
-            onChange={(e) => setPresetId(e.target.value)}
-          >
-            {SOLVER_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!isEpistemic && (
+          <>
+            <label className="field">
+              <span>Solver</span>
+              <select
+                value={presetId}
+                onChange={(e) => setPresetId(e.target.value)}
+              >
+                {SOLVER_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <button
-          className="solve-btn"
-          onClick={solve}
-          disabled={busy || isEpistemic}
-          title={
-            isEpistemic
-              ? 'Epistemic (E-PDDL) problems are not solved in the browser — see the explainer below'
-              : undefined
-          }
-        >
-          {solving
-            ? 'Solving…'
-            : !engineReady && enginePhase !== 'error'
-              ? 'Preparing solver…'
-              : 'Solve ▶'}
-        </button>
+            <button className="solve-btn" onClick={solve} disabled={busy}>
+              {solving
+                ? 'Solving…'
+                : !engineReady && enginePhase !== 'error'
+                  ? 'Preparing solver…'
+                  : 'Solve ▶'}
+            </button>
 
-        <button
-          className="compare-btn"
-          onClick={compareAll}
-          disabled={busy || isEpistemic}
-          title="Run every solver on this problem and compare them"
-        >
-          {comparing
-            ? `Comparing ${compareProgress}/${SOLVER_PRESETS.length}…`
-            : 'Compare all'}
-        </button>
+            <button
+              className="compare-btn"
+              onClick={compareAll}
+              disabled={busy}
+              title="Run every solver on this problem and compare them"
+            >
+              {comparing
+                ? `Comparing ${compareProgress}/${SOLVER_PRESETS.length}…`
+                : 'Compare all'}
+            </button>
 
-        <label
-          className="toggle"
-          title="If the domain uses :negative-preconditions, compile it to a positive equivalent that pyperplan can solve"
-        >
-          <input
-            type="checkbox"
-            checked={compileNeg}
-            onChange={(e) => setCompileNeg(e.target.checked)}
-          />
-          <span>Compile negative preconditions</span>
-        </label>
+            <label
+              className="toggle"
+              title="If the domain uses :negative-preconditions, compile it to a positive equivalent that pyperplan can solve"
+            >
+              <input
+                type="checkbox"
+                checked={compileNeg}
+                onChange={(e) => setCompileNeg(e.target.checked)}
+              />
+              <span>Compile negative preconditions</span>
+            </label>
+          </>
+        )}
       </section>
 
-      <EngineLoader phase={enginePhase} />
+      {!isEpistemic && <EngineLoader phase={enginePhase} />}
 
       <p className="solver-desc">
         {isEpistemic
-          ? 'Epistemic (E-PDDL) mode — in-browser solving is disabled. See the explainer below.'
+          ? 'Epistemic (E-PDDL) mode — these problems are solved on the optional backend (or explained below if none is connected).'
           : preset.description}
       </p>
 

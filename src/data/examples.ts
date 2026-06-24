@@ -109,19 +109,6 @@ export function makeMinefieldProblem(spec: MinefieldSpec): string {
 `;
 }
 
-const MINEFIELD_PROBLEM = makeMinefieldProblem({
-  size: 4,
-  robot: [0, 0],
-  golds: [
-    [0, 3],
-    [3, 3],
-  ],
-  obstacles: [
-    [1, 1],
-    [2, 1],
-    [1, 2],
-  ],
-});
 
 // --- MineField (ORIGINAL dissertation domain, with :negative-preconditions) ---
 // pyperplan cannot solve this directly; the app compiles it to a positive
@@ -404,15 +391,7 @@ export const EXAMPLES: Example[] = [
     id: 'minefield',
     name: 'MineField (dissertation domain)',
     description:
-      'A robot collects all gold on a grid while avoiding obstacles — the domain from the SMT/BMC planning dissertation, rendered as a 2-D grid.',
-    domain: MINEFIELD_DOMAIN,
-    problem: MINEFIELD_PROBLEM,
-  },
-  {
-    id: 'minefield-original',
-    name: 'MineField (original — negative preconditions)',
-    description:
-      'The dissertation domain exactly as written, with :negative-preconditions. pyperplan cannot solve this directly — the app compiles it to a positive equivalent automatically.',
+      'A robot collects all gold on a grid while avoiding obstacles — the SMT/BMC dissertation domain, rendered as a 2-D grid. It uses :negative-preconditions, which the app auto-compiles so pyperplan can solve it.',
     domain: MINEFIELD_NEG_DOMAIN,
     problem: MINEFIELD_NEG_PROBLEM,
   },

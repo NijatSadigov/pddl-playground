@@ -79,6 +79,33 @@
   border-color: rgba(255, 107, 107, 0.4);
 }
 
+/* ---- mode switch (PDDL / E-PDDL) ---- */
+.mode-switch {
+  display: inline-flex;
+  margin-top: 22px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 4px;
+  gap: 4px;
+}
+.mode-switch button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 7px;
+}
+.mode-switch button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.mode-switch button:not(.active):hover {
+  color: var(--text-h);
+}
+
 /* ---- toolbar ---- */
 .toolbar {
   display: flex;

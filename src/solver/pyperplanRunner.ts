@@ -1,57 +1,6 @@
-// Loads Pyodide (CPython compiled to WebAssembly) from a public CDN and runs the
-// pure-Python `pyperplan` planner entirely in the browser. Nothing is installed
-// on the host server: the WASM runtime and the pyperplan wheel are fetched from
-// jsDelivr / PyPI at runtime and cached by the browser.
-
-const PYODIDE_VERSION = 'v0.28.0';
-const PYODIDE_INDEX_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
-
-// The Python driver. Defined once after the package is installed; we then call
-// `solve(...)` for each planning request and get a JSON string back.
-const PY_DRIVER = `
-import io, json, logging, time
-from pyperplan.planner import SEARCHES, HEURISTICS, search_plan
-
-def solve(domain_text, problem_text, search_name, heuristic_name):
-    with open('/domain.pddl', 'w') as f:
-        f.write(domain_text)
-    with open('/problem.pddl', 'w') as f:
-        f.write(problem_text)
-
-    buf = io.StringIO()
-    handler = logging.StreamHandler(buf)
-    handler.setFormatter(logging.Formatter('%(message)s'))
-    root = logging.getLogger()
-    root.handlers = [handler]
-    root.setLevel(logging.INFO)
-
-    if search_name not in SEARCHES:
-        return json.dumps({'ok': False, 'error': 'Unknown search: ' + search_name})
-    search = SEARCHES[search_name]
-    heuristic = None
-    if heuristic_name and heuristic_name.lower() != 'none':
-        if heuristic_name not in HEURISTICS:
-            return json.dumps({'ok': False, 'error': 'Unknown heuristic: ' + heuristic_name})
-        heuristic = HEURISTICS[heuristic_name]
-    # blind searches take no heuristic
-    if search_name in ('bfs', 'ids', 'sat'):
-        heuristic = None
-
-    t0 = time.time()
-    try:
-        solution = search_plan('/domain.pddl', '/problem.pddl', search, heuristic)
-    except Exception as e:
-        return json.dumps({'ok': False, 'error': str(e), 'log': buf.getvalue()})
-    elapsed_ms = (time.time() - t0) * 1000.0
-    log = buf.getvalue()
-
-    if solution is None:
-        return json.dumps({'ok': True, 'solved': False, 'plan': [], 'log': log,
-                           'elapsedMs': elapsed_ms})
-    plan = [op.name for op in solution]
-    return json.dumps({'ok': True, 'solved': True, 'plan': plan, 'log': log,
-                       'elapsedMs': elapsed_ms})
-`;
+// Main-thread client for the solver. The heavy lifting (Pyodide + pyperplan)
+// happens in a Web Worker (solver.worker.ts) so the UI never freezes; this
+// module just sends solve requests to the worker and relays status updates.
 
 export interface SolveResult {
   ok: boolean;
@@ -72,9 +21,6 @@ export interface SolverStats {
 
 type LoadPhase = 'idle' | 'loading-runtime' | 'installing-planner' | 'ready' | 'error';
 
-let pyodide: any = null;
-let loadPromise: Promise<any> | null = null;
-
 const listeners = new Set<(phase: LoadPhase, detail?: string) => void>();
 
 export function onSolverStatus(cb: (phase: LoadPhase, detail?: string) => void) {
@@ -85,56 +31,68 @@ function emit(phase: LoadPhase, detail?: string) {
   listeners.forEach((cb) => cb(phase, detail));
 }
 
-async function loadPyodideScript(): Promise<(opts: any) => Promise<any>> {
-  // Pyodide ships as an ES module; import it dynamically so Vite leaves it alone.
-  const mod = await import(/* @vite-ignore */ `${PYODIDE_INDEX_URL}pyodide.mjs`);
-  return mod.loadPyodide;
-}
+let worker: Worker | null = null;
+let enginePhase: LoadPhase = 'idle';
+let readyPromise: Promise<void> | null = null;
+let readyResolve: (() => void) | null = null;
+const pending = new Map<number, (json: string) => void>();
+let nextId = 1;
 
-export function getSolverEngine(): Promise<any> {
-  if (pyodide) return Promise.resolve(pyodide);
-  if (loadPromise) return loadPromise;
-
-  loadPromise = (async () => {
-    emit('loading-runtime');
-    const loadPyodide = await loadPyodideScript();
-    const py = await loadPyodide({ indexURL: PYODIDE_INDEX_URL });
-
-    emit('installing-planner');
-    await py.loadPackage('micropip');
-    const micropip = py.pyimport('micropip');
-    await micropip.install('pyperplan');
-
-    // Define the driver function once.
-    py.runPython(PY_DRIVER);
-
-    pyodide = py;
-    emit('ready');
-    return py;
-  })();
-
-  loadPromise.catch((err) => {
-    emit('error', String(err));
-    loadPromise = null;
+function ensureWorker(): Worker {
+  if (worker) return worker;
+  worker = new Worker(new URL('./solver.worker.ts', import.meta.url), {
+    type: 'module',
   });
-
-  return loadPromise;
+  worker.onmessage = (e: MessageEvent) => {
+    const msg = e.data;
+    if (!msg) return;
+    if (msg.type === 'status') {
+      enginePhase = msg.phase;
+      emit(msg.phase, msg.detail);
+      if (msg.phase === 'ready') readyResolve?.();
+    } else if (msg.type === 'result') {
+      const resolve = pending.get(msg.id);
+      if (resolve) {
+        pending.delete(msg.id);
+        resolve(msg.resultJson);
+      }
+    }
+  };
+  worker.postMessage({ type: 'init' });
+  return worker;
 }
 
-export async function runPlanner(
+// Preload the worker + engine in the background. Resolves once ready.
+export function getSolverEngine(): Promise<void> {
+  ensureWorker();
+  if (enginePhase === 'ready') return Promise.resolve();
+  if (!readyPromise) {
+    readyPromise = new Promise<void>((res) => {
+      readyResolve = res;
+    });
+  }
+  return readyPromise;
+}
+
+export function runPlanner(
   domain: string,
   problem: string,
   search: string,
   heuristic: string | null,
 ): Promise<SolveResult> {
-  const py = await getSolverEngine();
-  const solve = py.globals.get('solve');
-  try {
-    const resultJson: string = solve(domain, problem, search, heuristic ?? 'none');
-    return JSON.parse(resultJson) as SolveResult;
-  } finally {
-    solve.destroy?.();
-  }
+  const w = ensureWorker();
+  const id = nextId++;
+  return new Promise<string>((resolve) => {
+    pending.set(id, resolve);
+    w.postMessage({
+      type: 'solve',
+      id,
+      domain,
+      problem,
+      search,
+      heuristic: heuristic ?? 'none',
+    });
+  }).then((json) => JSON.parse(json) as SolveResult);
 }
 
 // Pull the teaching-friendly numbers out of pyperplan's log output.

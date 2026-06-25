@@ -44,6 +44,24 @@ export const SERVER_PLANNERS: ServerPlanner[] = [
     description:
       'Decomposes the goal into subgoals and solves each with bounded-width search, with no heuristic guidance.',
   },
+  {
+    id: 'fd-lama-first',
+    label: 'Fast Downward · LAMA-first',
+    description:
+      'Fast Downward in the LAMA-first configuration: a fast satisficing planner (greedy search with the FF and landmark heuristics). Returns a plan quickly; not guaranteed optimal.',
+  },
+  {
+    id: 'fd-opt-lmcut',
+    label: 'Fast Downward · A* + LM-Cut (optimal)',
+    description:
+      'Fast Downward running A* with the admissible LM-Cut heuristic, so the plan is cost-optimal. Slower and more memory-intensive than satisficing search.',
+  },
+  {
+    id: 'fd-opt-blind',
+    label: 'Fast Downward · A* + blind (optimal)',
+    description:
+      'Fast Downward running A* with a blind (uninformed) heuristic: still cost-optimal, but explores far more states. Shows how much an admissible heuristic helps.',
+  },
 ];
 
 export const DEFAULT_SERVER_PLANNER = 'siw-then-bfsf';

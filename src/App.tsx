@@ -180,6 +180,11 @@ export default function App() {
 
   const [serverSolving, setServerSolving] = useState(false);
   const [serverPlannerId, setServerPlannerId] = useState(DEFAULT_SERVER_PLANNER);
+  const [serverComparison, setServerComparison] = useState<ComparisonRow[] | null>(
+    null,
+  );
+  const [serverComparing, setServerComparing] = useState(false);
+  const [serverCompareProgress, setServerCompareProgress] = useState(0);
 
   const preset = useMemo(
     () => SOLVER_PRESETS.find((p) => p.id === presetId) ?? SOLVER_PRESETS[0],
@@ -281,6 +286,7 @@ export default function App() {
     setNoPlan(false);
     setSolveError(null);
     setComparison(null);
+    setServerComparison(null);
     setCompiledNote(null);
     setEpiResult(null);
   }
@@ -443,6 +449,42 @@ export default function App() {
       );
     }
     setServerSolving(false);
+  }
+
+  async function compareServerAll() {
+    if (!serverReady) return;
+    setServerComparing(true);
+    clearResults();
+    const rows: ComparisonRow[] = [];
+    for (let i = 0; i < SERVER_PLANNERS.length; i++) {
+      const p = SERVER_PLANNERS[i];
+      setServerCompareProgress(i + 1);
+      const started = performance.now();
+      const res = await solveClassicalServer(domain, problem, p.id);
+      const elapsedMs = performance.now() - started;
+      if (res.ok && res.plan && res.plan.length) {
+        rows.push({
+          presetId: p.id,
+          label: p.label,
+          optimal: p.optimal,
+          solved: true,
+          planLength: res.plan.length,
+          nodesExpanded: res.stats?.nodesExpanded,
+          elapsedMs,
+          plan: res.plan,
+        });
+      } else {
+        rows.push({
+          presetId: p.id,
+          label: p.label,
+          optimal: p.optimal,
+          solved: false,
+          error: res.error,
+        });
+      }
+      setServerComparison([...rows]); // progressive fill-in
+    }
+    setServerComparing(false);
   }
 
   async function compareAll() {
@@ -654,7 +696,7 @@ export default function App() {
             <button
               className="solve-btn"
               onClick={solveServer}
-              disabled={serverSolving || !serverReady}
+              disabled={serverSolving || serverComparing || !serverReady}
               title={
                 serverReady
                   ? `Solve the full PDDL on the backend (${serverPlanner.label})`
@@ -663,6 +705,19 @@ export default function App() {
             >
               {serverSolving ? 'Solving on server…' : 'Solve on server ▶'}
             </button>
+
+            {serverReady && (
+              <button
+                className="compare-btn"
+                onClick={compareServerAll}
+                disabled={serverSolving || serverComparing}
+                title="Run every server planner on this problem and compare them"
+              >
+                {serverComparing
+                  ? `Comparing ${serverCompareProgress}/${SERVER_PLANNERS.length}…`
+                  : 'Compare all'}
+              </button>
+            )}
           </>
         )}
 
@@ -780,6 +835,17 @@ export default function App() {
           <ComparisonTable
             rows={comparison}
             progress={{ done: compareProgress, total: SOLVER_PRESETS.length }}
+            onView={viewComparisonRow}
+          />
+        )}
+
+        {isServer && serverComparison && (
+          <ComparisonTable
+            rows={serverComparison}
+            progress={{
+              done: serverCompareProgress,
+              total: SERVER_PLANNERS.length,
+            }}
             onView={viewComparisonRow}
           />
         )}

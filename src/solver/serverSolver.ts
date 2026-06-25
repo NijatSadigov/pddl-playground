@@ -17,48 +17,57 @@ export interface ServerPlanner {
   id: string;
   label: string;
   description: string;
+  /** True if the configuration returns cost-optimal plans. */
+  optimal: boolean;
 }
 
 export const SERVER_PLANNERS: ServerPlanner[] = [
   {
     id: 'siw-then-bfsf',
     label: 'SIW + BFS(f)',
+    optimal: false,
     description:
       'Serialised Iterated Width, falling back to best-first search with the FF heuristic. A robust default that solves most problems quickly.',
   },
   {
     id: 'bfws',
     label: 'Best-First Width Search',
+    optimal: false,
     description:
       'Combines a novelty (width) measure with goal-counting heuristics. A strong satisficing planner across many benchmarks.',
   },
   {
     id: 'bfs_f',
     label: 'Best-First Search + FF',
+    optimal: false,
     description:
       'Best-first search guided by the FF relaxed-plan heuristic — classic informed heuristic search.',
   },
   {
     id: 'siw',
     label: 'Serialised Iterated Width',
+    optimal: false,
     description:
       'Decomposes the goal into subgoals and solves each with bounded-width search, with no heuristic guidance.',
   },
   {
     id: 'fd-lama-first',
     label: 'Fast Downward · LAMA-first',
+    optimal: false,
     description:
       'Fast Downward in the LAMA-first configuration: a fast satisficing planner (greedy search with the FF and landmark heuristics). Returns a plan quickly; not guaranteed optimal.',
   },
   {
     id: 'fd-opt-lmcut',
     label: 'Fast Downward · A* + LM-Cut (optimal)',
+    optimal: true,
     description:
       'Fast Downward running A* with the admissible LM-Cut heuristic, so the plan is cost-optimal. Slower and more memory-intensive than satisficing search.',
   },
   {
     id: 'fd-opt-blind',
     label: 'Fast Downward · A* + blind (optimal)',
+    optimal: true,
     description:
       'Fast Downward running A* with a blind (uninformed) heuristic: still cost-optimal, but explores far more states. Shows how much an admissible heuristic helps.',
   },

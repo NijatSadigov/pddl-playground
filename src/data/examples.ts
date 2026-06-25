@@ -7,8 +7,11 @@ export interface Example {
   description: string;
   domain: string;
   problem: string;
-  /** Epistemic (E-PDDL) examples can't be solved in-browser — see EpistemicPanel. */
+  /** Epistemic example, solved on the backend (not in-browser) — see EpistemicPanel. */
   epistemic?: boolean;
+  /** Epistemic example written in E-PDDL for the native EFP planner (rather than
+   * PDKBDDL for RP-MEP). Both are epistemic; this picks the backend planner. */
+  epddl?: boolean;
 }
 
 // Heuristic: does this look like an epistemic (E-PDDL / PDKB) domain rather than
@@ -553,6 +556,62 @@ const BLUFF_PROBLEM = `;; Asset really in Box A. White knows it; Black knows not
 )
 `;
 
+// --- Coin in the Box (E-PDDL, for the native EFP planner) ---------------------
+// Same puzzle as the PDKBDDL Coin example, but written in E-PDDL and solved by
+// EFP, which builds explicit possibility states rather than compiling to
+// classical planning. :act_type marks ontic/sensing/announcement actions, and
+// :observers / :p_observers say who fully or partially observes each action.
+const COIN_EPDDL_DOMAIN = `(define (domain coininthebox)
+  (:requirements :strips :negative-preconditions :mep)
+  (:predicates (opened) (has_key ?ag - agent) (looking ?ag - agent) (tail))
+
+  (:action open
+    :act_type   ontic
+    :parameters (?ag - agent)
+    :precondition (and ([?ag](has_key ?ag)) (has_key ?ag))
+    :effect (opened)
+    :observers (and (forall (diff(?ag2)(?ag)) (when (looking ?ag2) (?ag2))) (?ag)))
+
+  (:action peek
+    :act_type   sensing
+    :parameters (?ag - agent)
+    :precondition (and ([?ag](opened)) ([?ag](looking ?ag)) (looking ?ag) (opened))
+    :effect (when (looking ?ag) (tail))
+    :observers  (?ag)
+    :p_observers (and (forall (diff(?ag2)(?ag)) (when (looking ?ag2) (?ag2)))))
+
+  (:action signal
+    :parameters (?ag1 ?ag2 - agent)
+    :precondition (and ([?ag1](looking ?ag1)) ([?ag2](not (looking ?ag2))))
+    :effect (looking ?ag2)
+    :observers (?ag1 ?ag2))
+
+  (:action distract
+    :parameters (?ag1 ?ag2 - agent)
+    :precondition (and ([?ag1](looking ?ag1)) ([?ag2](looking ?ag2)))
+    :effect (not (looking ?ag2))
+    :observers (?ag1 ?ag2))
+
+  (:action announce
+    :act_type   announcement
+    :parameters (?ag - agent)
+    :precondition (and ([?ag](tail)) (tail))
+    :effect (tail)
+    :observers (and (forall (diff(?ag2)(?ag)) (when (looking ?ag2) (?ag2))) (?ag))))
+`;
+
+const COIN_EPDDL_PROBLEM = `(define (problem pb1)
+  (:domain coininthebox)
+  (:agents a b c)
+  (:depth 2)
+  (:init (tail) (has_key a) (looking a)
+    ([a b c](has_key a)) ([a b c](not (has_key b))) ([a b c](not (has_key c)))
+    ([a b c](not (opened))) ([a b c](looking a))
+    ([a b c](not (looking b))) ([a b c](not (looking c))))
+  (:goal ([b](opened)))
+)
+`;
+
 export const EXAMPLES: Example[] = [
   {
     id: 'minefield',
@@ -621,5 +680,15 @@ export const EXAMPLES: Example[] = [
     domain: BLUFF_DOMAIN,
     problem: BLUFF_PROBLEM,
     epistemic: true,
+  },
+  {
+    id: 'coin-epddl',
+    name: 'Coin in the Box (E-PDDL · native EFP)',
+    description:
+      'The Coin puzzle in E-PDDL, solved by the native EFP planner, which builds explicit possibility states instead of compiling to classical planning. Agent a can open the box (it knows it has the key); b learns the coin shows tails only by looking. Solving (depth 2) yields a 2-step plan, e.g. (signal_a_b) then (open_a).',
+    domain: COIN_EPDDL_DOMAIN,
+    problem: COIN_EPDDL_PROBLEM,
+    epistemic: true,
+    epddl: true,
   },
 ];

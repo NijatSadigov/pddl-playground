@@ -1,20 +1,30 @@
-import type { EpistemicResult } from '../solver/epistemicSolver';
+import type {
+  EpistemicResult,
+  EpistemicPlanner,
+} from '../solver/epistemicSolver';
 import './EpistemicPanel.css';
 
-// Shown when the editor holds an epistemic (E-PDDL / PDKBDDL) domain. Epistemic
-// planning is not solved in the browser; the panel explains the solving pipeline
-// (compilation to classical planning) and, if an epistemic backend is
-// configured, offers to solve it on the server.
+// Shown in epistemic mode. Epistemic planning is not solved in the browser; the
+// panel explains how the chosen backend planner solves it and, when a backend is
+// configured, offers to solve on the server.
+//   rpmep — pdkb-planning: compile the epistemic problem to classical planning.
+//   efp   — native EFP: build and search explicit epistemic states.
 
-const STEPS = [
-  { label: 'E-PDDL', sub: 'what agents know' },
-  { label: 'PDKB-PDDL', sub: 'knowledge bases' },
+const RPMEP_STEPS = [
+  { label: 'PDKBDDL', sub: 'what agents know' },
   { label: 'classical PDDL', sub: 'with conditional effects' },
   { label: 'BFWS planner', sub: 'finds the plan' },
 ];
 
+const EFP_STEPS = [
+  { label: 'E-PDDL', sub: 'what agents know' },
+  { label: 'possibility states', sub: 'explicit e-states' },
+  { label: 'forward search', sub: 'over e-states' },
+];
+
 interface Props {
   apiConfigured: boolean;
+  planner: EpistemicPlanner;
   solving: boolean;
   result: EpistemicResult | null;
   onSolve: () => void;
@@ -22,17 +32,23 @@ interface Props {
 
 export function EpistemicPanel({
   apiConfigured,
+  planner,
   solving,
   result,
   onSolve,
 }: Props) {
+  const isEFP = planner === 'efp';
+  const lang = isEFP ? 'E-PDDL' : 'PDKBDDL';
+  const steps = isEFP ? EFP_STEPS : RPMEP_STEPS;
+  const tag = apiConfigured
+    ? `${isEFP ? 'EFP' : 'RP-MEP'} · solved on the server`
+    : 'explorer — not solved in-browser';
+
   return (
     <div className="epi">
       <div className="epi-head">
         <h2>Epistemic planning</h2>
-        <span className="epi-tag">
-          {apiConfigured ? 'solved on the server' : 'explorer — not solved in-browser'}
-        </span>
+        <span className="epi-tag">{tag}</span>
       </div>
 
       <p className="epi-lead">
@@ -48,8 +64,10 @@ export function EpistemicPanel({
             {solving ? 'Solving on server…' : 'Solve on server ▶'}
           </button>
           <span className="epi-solve-note">
-            Sends the problem to the epistemic backend (pdkb-planning). Network-
-            dependent — the classical playground stays offline.
+            {isEFP
+              ? 'Sends the problem to the native EFP planner, which searches over explicit epistemic states.'
+              : 'Sends the problem to the RP-MEP backend (pdkb-planning), which compiles it to classical planning.'}{' '}
+            Network-dependent — the classical playground stays offline.
           </span>
 
           {result && (
@@ -75,7 +93,7 @@ export function EpistemicPanel({
                   {typeof result.returncode === 'number'
                     ? ` (exit ${result.returncode})`
                     : ''}
-                  . Check it is valid PDKBDDL — see the raw output below.
+                  . Check it is valid {lang} — see the raw output below.
                 </strong>
               ) : (
                 <strong>
@@ -94,24 +112,40 @@ export function EpistemicPanel({
         </div>
       )}
 
-      <h3 className="epi-sub">How it's solved: compile to classical planning</h3>
+      <h3 className="epi-sub">
+        {isEFP
+          ? "How it's solved: native epistemic search"
+          : "How it's solved: compile to classical planning"}
+      </h3>
       <div className="epi-pipe">
-        {STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <div className="epi-stepwrap" key={s.label}>
             <div className="epi-step">
               <div className="epi-step-label">{s.label}</div>
               <div className="epi-step-sub">{s.sub}</div>
             </div>
-            {i < STEPS.length - 1 && <div className="epi-arrow">→</div>}
+            {i < steps.length - 1 && <div className="epi-arrow">→</div>}
           </div>
         ))}
       </div>
       <p className="epi-note">
-        The same trick as this app's negative-precondition compiler — a hard
-        feature is <em>translated</em> into something a classical planner can
-        solve. The compiled output uses conditional effects, which the in-browser
-        solver (pyperplan) doesn't support, so the final step runs a full classical
-        planner (<strong>BFWS</strong>) on the backend.
+        {isEFP ? (
+          <>
+            EFP does <em>not</em> compile to classical planning. It builds
+            explicit epistemic states — Kripke structures or non-well-founded{' '}
+            <em>possibilities</em> — and searches over them directly, applying
+            each action as an update to the state. This handles constructs such as
+            lies and false beliefs that are awkward for compilation approaches.
+          </>
+        ) : (
+          <>
+            The same trick as this app's negative-precondition compiler — a hard
+            feature is <em>translated</em> into something a classical planner can
+            solve. The compiled output uses conditional effects, which the
+            in-browser solver (pyperplan) doesn't support, so the final step runs
+            a full classical planner (<strong>BFWS</strong>) on the backend.
+          </>
+        )}
       </p>
 
       <h3 className="epi-sub">References</h3>
@@ -124,10 +158,15 @@ export function EpistemicPanel({
           classical planner.
         </li>
         <li>
+          <a href="https://github.com/FrancescoFabiano/EFP" target="_blank" rel="noreferrer">
+            EFP
+          </a>{' '}
+          — Fabiano et al.'s native epistemic forward planner (Kripke /
+          possibilities), with{' '}
           <a href="https://github.com/FrancescoFabiano/E-PDDL" target="_blank" rel="noreferrer">
             E-PDDL
           </a>{' '}
-          — a standardised epistemic syntax that feeds RP-MEP and the EFP planner.
+          as its standardised input syntax.
         </li>
         <li>
           <a href="https://arxiv.org/pdf/2107.08739" target="_blank" rel="noreferrer">
@@ -140,8 +179,8 @@ export function EpistemicPanel({
       {!apiConfigured && (
         <p className="epi-note epi-roadmap">
           Solving is disabled because no epistemic backend is configured. Set{' '}
-          <code>VITE_EPISTEMIC_API</code> at build time to point at a running{' '}
-          <code>pdkb-epistemic</code> service to enable "Solve on server".
+          <code>VITE_EPISTEMIC_API</code> at build time to point at a running
+          backend to enable "Solve on server".
         </p>
       )}
     </div>

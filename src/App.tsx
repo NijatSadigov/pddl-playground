@@ -9,7 +9,9 @@ import { CompileInfo } from './components/CompileInfo';
 import {
   epistemicApiConfigured,
   solveEpistemic,
+  solveEFP,
   type EpistemicResult,
+  type EpistemicPlanner,
 } from './solver/epistemicSolver';
 import {
   serverApiConfigured,
@@ -57,7 +59,9 @@ const ENGINE_OPTIONS: {
 ];
 
 const CLASSICAL_EXAMPLES = EXAMPLES.filter((e) => !e.epistemic);
-const EPISTEMIC_EXAMPLES = EXAMPLES.filter((e) => e.epistemic);
+// Epistemic examples split by backend planner: PDKBDDL (RP-MEP) vs E-PDDL (EFP).
+const RPMEP_EXAMPLES = EXAMPLES.filter((e) => e.epistemic && !e.epddl);
+const EFP_EXAMPLES = EXAMPLES.filter((e) => e.epistemic && e.epddl);
 import { SOLVER_PRESETS, DEFAULT_PRESET_ID } from './solver/presets';
 import {
   runPlanner,
@@ -195,7 +199,11 @@ export default function App() {
   const isEpistemic = engine === 'epistemic';
   const isServer = engine === 'server';
   const isBrowser = engine === 'browser';
-  const exampleList = isEpistemic ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
+  // Within epistemic mode, choose the backend planner (RP-MEP / PDKBDDL vs EFP /
+  // E-PDDL); each has its own example set.
+  const [epiPlanner, setEpiPlanner] = useState<EpistemicPlanner>('rpmep');
+  const epistemicExamples = epiPlanner === 'efp' ? EFP_EXAMPLES : RPMEP_EXAMPLES;
+  const exampleList = isEpistemic ? epistemicExamples : CLASSICAL_EXAMPLES;
   const serverReady = serverApiConfigured();
 
   // Preload the WASM runtime + planner in the background so the first solve is fast.
@@ -280,10 +288,22 @@ export default function App() {
   async function solveEpistemicHandler() {
     setEpiSolving(true);
     setEpiResult(null);
-    // PDKBDDL is a single file; send domain + problem concatenated.
-    const result = await solveEpistemic(`${domain}\n\n${problem}`);
+    // EFP takes E-PDDL as separate domain + problem; RP-MEP takes a single
+    // PDKBDDL file (domain + problem concatenated).
+    const result =
+      epiPlanner === 'efp'
+        ? await solveEFP(domain, problem)
+        : await solveEpistemic(`${domain}\n\n${problem}`);
     setEpiResult(result);
     setEpiSolving(false);
+  }
+
+  function switchEpiPlanner(next: EpistemicPlanner) {
+    if (next === epiPlanner) return;
+    setEpiPlanner(next);
+    clearResults();
+    const list = next === 'efp' ? EFP_EXAMPLES : RPMEP_EXAMPLES;
+    if (list.length) loadExample(list[0].id);
   }
 
   // The text actually sent to the solver. If the domain uses negative
@@ -327,7 +347,7 @@ export default function App() {
     // Browser and server share the classical examples, so keep the editors when
     // switching between them; only reset when moving to/from the epistemic set.
     if (crossesExampleSet) {
-      const list = next === 'epistemic' ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
+      const list = next === 'epistemic' ? epistemicExamples : CLASSICAL_EXAMPLES;
       if (list.length) loadExample(list[0].id);
     }
   }
@@ -645,6 +665,19 @@ export default function App() {
             </button>
           </>
         )}
+
+        {isEpistemic && (
+          <label className="field">
+            <span>Planner</span>
+            <select
+              value={epiPlanner}
+              onChange={(e) => switchEpiPlanner(e.target.value as EpistemicPlanner)}
+            >
+              <option value="rpmep">RP-MEP · compile to classical (PDKBDDL)</option>
+              <option value="efp">EFP · native Kripke / possibilities (E-PDDL)</option>
+            </select>
+          </label>
+        )}
       </section>
 
       {isBrowser && <EngineLoader phase={enginePhase} />}
@@ -701,6 +734,7 @@ export default function App() {
         {isEpistemic && (
           <EpistemicPanel
             apiConfigured={epistemicApiConfigured()}
+            planner={epiPlanner}
             solving={epiSolving}
             result={epiResult}
             onSolve={solveEpistemicHandler}

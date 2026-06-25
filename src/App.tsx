@@ -13,6 +13,8 @@ import {
 import {
   serverApiConfigured,
   solveClassicalServer,
+  SERVER_PLANNERS,
+  DEFAULT_SERVER_PLANNER,
   type ServerSolveStats,
 } from './solver/serverSolver';
 import { EXAMPLES, looksEpistemic } from './data/examples';
@@ -172,10 +174,16 @@ export default function App() {
   const [epiResult, setEpiResult] = useState<EpistemicResult | null>(null);
 
   const [serverSolving, setServerSolving] = useState(false);
+  const [serverPlannerId, setServerPlannerId] = useState(DEFAULT_SERVER_PLANNER);
 
   const preset = useMemo(
     () => SOLVER_PRESETS.find((p) => p.id === presetId) ?? SOLVER_PRESETS[0],
     [presetId],
+  );
+  const serverPlanner = useMemo(
+    () =>
+      SERVER_PLANNERS.find((p) => p.id === serverPlannerId) ?? SERVER_PLANNERS[0],
+    [serverPlannerId],
   );
 
   // Top-level engine choice. Epistemic uses a separate example set + UI; the
@@ -393,7 +401,7 @@ export default function App() {
     setServerSolving(true);
     clearResults();
     const started = performance.now();
-    const result = await solveClassicalServer(domain, problem);
+    const result = await solveClassicalServer(domain, problem, serverPlannerId);
     const elapsedMs = performance.now() - started;
     if (!result.ok) {
       if (result.error && /no plan/i.test(result.error)) {
@@ -407,7 +415,7 @@ export default function App() {
     } else {
       setLog(result.output ?? '');
       setPlanState(
-        buildPlanState(result.plan, 'Server · BFWS (full PDDL)', {
+        buildPlanState(result.plan, `Server · ${serverPlanner.label}`, {
           elapsedMs,
           serverStats: result.stats,
         }),
@@ -605,18 +613,36 @@ export default function App() {
         )}
 
         {isServer && (
-          <button
-            className="solve-btn"
-            onClick={solveServer}
-            disabled={serverSolving || !serverReady}
-            title={
-              serverReady
-                ? 'Solve the full PDDL on the backend (BFWS)'
-                : 'No solver backend is configured for this build'
-            }
-          >
-            {serverSolving ? 'Solving on server…' : 'Solve on server ▶'}
-          </button>
+          <>
+            {serverReady && (
+              <label className="field">
+                <span>Solver</span>
+                <select
+                  value={serverPlannerId}
+                  onChange={(e) => setServerPlannerId(e.target.value)}
+                >
+                  {SERVER_PLANNERS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <button
+              className="solve-btn"
+              onClick={solveServer}
+              disabled={serverSolving || !serverReady}
+              title={
+                serverReady
+                  ? `Solve the full PDDL on the backend (${serverPlanner.label})`
+                  : 'No solver backend is configured for this build'
+              }
+            >
+              {serverSolving ? 'Solving on server…' : 'Solve on server ▶'}
+            </button>
+          </>
         )}
       </section>
 
@@ -626,7 +652,7 @@ export default function App() {
         {isBrowser && preset.description}
         {isServer &&
           (serverReady
-            ? 'Server engine — the full domain and problem are sent to the backend planner (BFWS), which handles negative preconditions, conditional effects and action costs natively. The returned plan is visualised below.'
+            ? `${serverPlanner.label} — ${serverPlanner.description} Solved on the backend (full PDDL: negative preconditions, conditional effects and action costs are handled natively).`
             : 'Server engine — this build has no solver backend configured, so server solving is unavailable. The in-browser engine works offline.')}
         {isEpistemic &&
           'Epistemic (E-PDDL) mode — these problems are solved on the optional backend (or explained below if none is connected).'}

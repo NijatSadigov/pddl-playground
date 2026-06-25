@@ -11,6 +11,43 @@ export function serverApiConfigured(): boolean {
   return !!API;
 }
 
+// Bundled LAPKT planners exposed by the backend's /solve-classical endpoint.
+// Each id must match a key of the backend's allowlist.
+export interface ServerPlanner {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export const SERVER_PLANNERS: ServerPlanner[] = [
+  {
+    id: 'siw-then-bfsf',
+    label: 'SIW + BFS(f)',
+    description:
+      'Serialised Iterated Width, falling back to best-first search with the FF heuristic. A robust default that solves most problems quickly.',
+  },
+  {
+    id: 'bfws',
+    label: 'Best-First Width Search',
+    description:
+      'Combines a novelty (width) measure with goal-counting heuristics. A strong satisficing planner across many benchmarks.',
+  },
+  {
+    id: 'bfs_f',
+    label: 'Best-First Search + FF',
+    description:
+      'Best-first search guided by the FF relaxed-plan heuristic — classic informed heuristic search.',
+  },
+  {
+    id: 'siw',
+    label: 'Serialised Iterated Width',
+    description:
+      'Decomposes the goal into subgoals and solves each with bounded-width search, with no heuristic guidance.',
+  },
+];
+
+export const DEFAULT_SERVER_PLANNER = 'siw-then-bfsf';
+
 export interface ServerSolveStats {
   cost?: number;
   nodesExpanded?: number;
@@ -30,13 +67,14 @@ export interface ServerSolveResult {
 export async function solveClassicalServer(
   domain: string,
   problem: string,
+  planner: string = DEFAULT_SERVER_PLANNER,
 ): Promise<ServerSolveResult> {
   if (!API) return { ok: false, error: 'No solver backend configured.' };
   try {
     const res = await fetch(`${API}/solve-classical`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ domain, problem }),
+      body: JSON.stringify({ domain, problem, planner }),
     });
     if (!res.ok) {
       return { ok: false, error: `Backend returned HTTP ${res.status}` };

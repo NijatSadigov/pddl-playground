@@ -1,6 +1,6 @@
 // Optional epistemic-planning backend (Phase 2). When VITE_EPISTEMIC_API is set
 // at build time, epistemic (PDKBDDL) problems can be solved on a server running
-// pdkb-planning + Fast Downward (see ../../../pddl-epistemic-backend). When it is
+// pdkb-planning (RP-MEP) (see ../../../pddl-epistemic-backend). When it is
 // unset, the app stays fully offline and epistemic mode is explain-only.
 
 const API = import.meta.env.VITE_EPISTEMIC_API?.replace(/\/$/, '');

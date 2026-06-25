@@ -556,6 +556,103 @@ const BLUFF_PROBLEM = `;; Asset really in Box A. White knows it; Black knows not
 )
 `;
 
+// --- Thief and Guard (PDKBDDL, adversarial) -----------------------------------
+// A small adversarial epistemic domain. The thief reaches its goal by ambushing
+// while it does not yet know the guard is present (![t](guard)) — a negative
+// knowledge precondition.
+const THIEF_DOMAIN = `;; Thief and Guard - a small adversarial epistemic domain.
+;;   [g](thief) = the guard knows a thief is present   ![t](guard) = thief does NOT know
+(define (domain thief)
+    (:agents t g)
+    (:types )
+    (:constants )
+    (:predicates (thief) (guard) {AK}(goal))
+    (:action make-noise-thief
+        :derive-condition always
+        :precondition (and (thief))
+        :effect (and (when (guard) [g](thief))))
+    (:action make-noise-guard
+        :derive-condition always
+        :precondition (and (guard))
+        :effect (and (when (thief) [t](guard))))
+    (:action thief-sees-guard
+        :derive-condition always
+        :precondition (and (thief) (guard))
+        :effect (and [t](guard)))
+    (:action guard-sees-thief
+        :derive-condition always
+        :precondition (and (thief) (guard))
+        :effect (and [g](thief)))
+    (:action both-see-each-other
+        :derive-condition always
+        :precondition (and (thief) (guard))
+        :effect (and [g](thief) [t](guard)))
+    ;; ambush only while the thief is unaware the guard is there
+    (:action ambush
+        :derive-condition always
+        :precondition (and (thief) ![t] (guard))
+        :effect (and (goal)))
+    ;; trick: the thief knows the guard, and knows the guard does not know the thief
+    (:action trick
+        :derive-condition always
+        :precondition (and (thief) [t](guard) [t] ![g] (thief))
+        :effect (and (goal))))
+`;
+
+const THIEF_PROBLEM = `(define (problem prob1)
+    (:domain thief)
+    (:projection )
+    (:depth 2)
+    (:task valid_generation)
+    (:init-type complete)
+    (:init (thief) (guard) [t](thief) [g](guard))
+    (:goal (goal)))
+`;
+
+// --- Grapevine (PDKBDDL, gossip) ----------------------------------------------
+// The classic gossip problem: an agent shares a secret with everyone in the same
+// room. To tell b but not c, the plan first moves c out of the room.
+const GRAPEVINE_DOMAIN = `;; Grapevine - agents share secrets only with others in the same room.
+;;   [a](secret b) = agent a knows agent b's secret
+(define (domain grapevine)
+    (:agents a b c)
+    (:types loc)
+    (:constants )
+    (:predicates
+            (secret ?agent)
+        {AK}(at ?agent - agent ?l - loc)
+        {AK}(connected ?l1 ?l2 - loc))
+    (:action move
+        :derive-condition   always
+        :parameters         (?a - agent ?l1 ?l2 - loc)
+        :precondition       (and (at ?a ?l1) (connected ?l1 ?l2))
+        :effect             (and (at ?a ?l2) (!at ?a ?l1)))
+    (:action share
+        :derive-condition   (at $agent$ ?l)
+        :parameters         (?a ?as - agent ?l - loc)
+        :precondition       (and (at ?a ?l) [?a](secret ?as))
+        :effect             (and (forall ?a2 - agent
+                                    (when (at ?a2 ?l) [?a2](secret ?as))))))
+`;
+
+const GRAPEVINE_PROBLEM = `;; All three agents start in room l1, each knowing only their own secret.
+;; Goal: b learns a's secret while c does not, so c must be moved out first.
+(define (problem prob)
+    (:domain grapevine)
+    (:objects l1 l2 - loc)
+    (:projection )
+    (:depth 1)
+    (:task valid_generation)
+    (:init-type complete)
+    (:init
+        (connected l1 l2) (connected l2 l1)
+        (forall ?ag - agent (at ?ag l1))
+        (forall ?ag - agent [?ag](secret ?ag)))
+    (:goal
+        [b](secret a)
+       ![c](secret a)))
+`;
+
 // --- Coin in the Box (E-PDDL, for the native EFP planner) ---------------------
 // Same puzzle as the PDKBDDL Coin example, but written in E-PDDL and solved by
 // EFP, which builds explicit possibility states rather than compiling to
@@ -679,6 +776,24 @@ export const EXAMPLES: Example[] = [
       'White knows an asset is in Box A; the goal is to make Black hold the FALSE belief that it is in Box B. pdkb-planning uses belief (KD) logic by default — beliefs need not be true — so the deception is representable and solves to (deceptive_tell_white_black_boxb). A pure S5/knowledge engine would reject it, since knowledge must be true.',
     domain: BLUFF_DOMAIN,
     problem: BLUFF_PROBLEM,
+    epistemic: true,
+  },
+  {
+    id: 'thief',
+    name: 'Thief and Guard (adversarial)',
+    description:
+      'A small adversarial epistemic domain. The thief reaches its goal by ambushing while it does not yet know the guard is present — a negative-knowledge precondition ![t](guard). Solves to (ambush). (RP-MEP / PDKBDDL.)',
+    domain: THIEF_DOMAIN,
+    problem: THIEF_PROBLEM,
+    epistemic: true,
+  },
+  {
+    id: 'grapevine',
+    name: 'Grapevine (gossip)',
+    description:
+      'The classic gossip problem: an agent shares a secret with everyone in the same room. The goal is for b to learn a’s secret while c does not, so the plan first moves c out of the room, then a shares: (move_c_l1_l2) (share_a_a_l1). (RP-MEP / PDKBDDL.)',
+    domain: GRAPEVINE_DOMAIN,
+    problem: GRAPEVINE_PROBLEM,
     epistemic: true,
   },
   {

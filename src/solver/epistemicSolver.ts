@@ -13,6 +13,9 @@ export interface EpistemicResult {
   ok: boolean;
   plan?: string[];
   stats?: { planLength?: number; nodesExpanded?: number; searchTimeMs?: number };
+  /** EFP only: the initial belief state and the state after each plan action,
+   * each as graphviz DOT for in-browser rendering. */
+  states?: { label: string; dot: string }[];
   output?: string;
   returncode?: number;
   error?: string;

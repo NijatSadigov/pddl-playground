@@ -2,6 +2,7 @@ import type {
   EpistemicResult,
   EpistemicPlanner,
 } from '../solver/epistemicSolver';
+import { EpistemicStates } from './EpistemicStates';
 import './EpistemicPanel.css';
 
 // Shown in epistemic mode. Epistemic planning is not solved in the browser; the
@@ -100,6 +101,9 @@ export function EpistemicPanel({
                   Solved, but produced no plan steps (the goal may already
                   hold).
                 </strong>
+              )}
+              {result.states && result.states.length > 0 && (
+                <EpistemicStates states={result.states} />
               )}
               {result.output && (
                 <details className="epi-rawwrap">

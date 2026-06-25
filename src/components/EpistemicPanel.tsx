@@ -2,9 +2,9 @@ import type { EpistemicResult } from '../solver/epistemicSolver';
 import './EpistemicPanel.css';
 
 // Shown when the editor holds an epistemic (E-PDDL / PDKBDDL) domain. Epistemic
-// planning can't be solved in the browser; we explain HOW it is solved (compile
-// to classical planning), and — if an epistemic backend is configured — offer to
-// solve it on the server.
+// planning is not solved in the browser; the panel explains the solving pipeline
+// (compilation to classical planning) and, if an epistemic backend is
+// configured, offers to solve it on the server.
 
 const STEPS = [
   { label: 'E-PDDL', sub: 'what agents know' },

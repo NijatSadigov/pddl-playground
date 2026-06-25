@@ -10,10 +10,49 @@ import {
   solveEpistemic,
   type EpistemicResult,
 } from './solver/epistemicSolver';
+import {
+  serverApiConfigured,
+  solveClassicalServer,
+  type ServerSolveStats,
+} from './solver/serverSolver';
 import { EXAMPLES, looksEpistemic } from './data/examples';
 
-// The app has two modes with separate example sets and UIs, chosen by a
-// top-level switch: classical PDDL (solved in-browser) and epistemic E-PDDL.
+// The app offers three solver engines, each with its own example set and UI,
+// chosen by a top-level picker:
+//   browser   — pyperplan, runs entirely in-browser (STRIPS + typing subset)
+//   server    — full-PDDL classical solve on the optional backend (BFWS)
+//   epistemic — multi-agent E-PDDL, solved on the optional backend
+type Engine = 'browser' | 'server' | 'epistemic';
+
+const ENGINE_OPTIONS: {
+  id: Engine;
+  title: string;
+  tag: string;
+  blurb: string;
+}[] = [
+  {
+    id: 'browser',
+    title: 'In-browser',
+    tag: 'pyperplan · offline',
+    blurb:
+      'Runs the pyperplan planner entirely in your browser via WebAssembly. STRIPS + typing; negative preconditions are compiled away automatically.',
+  },
+  {
+    id: 'server',
+    title: 'Server · full PDDL',
+    tag: 'BFWS · richer PDDL',
+    blurb:
+      'Solves on the backend with a full-PDDL planner (BFWS). Handles negative preconditions, conditional effects and action costs natively — no compilation needed.',
+  },
+  {
+    id: 'epistemic',
+    title: 'Epistemic · E-PDDL',
+    tag: 'multi-agent knowledge',
+    blurb:
+      'Multi-agent epistemic planning (reasoning about what agents know). Compiled to classical planning and solved on the backend.',
+  },
+];
+
 const CLASSICAL_EXAMPLES = EXAMPLES.filter((e) => !e.epistemic);
 const EPISTEMIC_EXAMPLES = EXAMPLES.filter((e) => e.epistemic);
 import { SOLVER_PRESETS, DEFAULT_PRESET_ID } from './solver/presets';
@@ -57,6 +96,7 @@ const ENGINE_LABEL: Record<EnginePhase, string> = {
 interface PlanState {
   plan: string[];
   stats: SolverStats;
+  serverStats?: ServerSolveStats;
   elapsedMs?: number;
   solverLabel: string;
   sim: Simulation | null;
@@ -131,18 +171,23 @@ export default function App() {
   const [epiSolving, setEpiSolving] = useState(false);
   const [epiResult, setEpiResult] = useState<EpistemicResult | null>(null);
 
+  const [serverSolving, setServerSolving] = useState(false);
+
   const preset = useMemo(
     () => SOLVER_PRESETS.find((p) => p.id === presetId) ?? SOLVER_PRESETS[0],
     [presetId],
   );
 
-  // Top-level mode. Epistemic (E-PDDL) uses a separate example set + UI and is
-  // solved on the optional backend, not in-browser.
-  const [mode, setMode] = useState<'classical' | 'epistemic'>(() =>
-    looksEpistemic(boot.domain) ? 'epistemic' : 'classical',
+  // Top-level engine choice. Epistemic uses a separate example set + UI; the
+  // server engine reuses the classical examples but solves on the backend.
+  const [engine, setEngine] = useState<Engine>(() =>
+    looksEpistemic(boot.domain) ? 'epistemic' : 'browser',
   );
-  const isEpistemic = mode === 'epistemic';
+  const isEpistemic = engine === 'epistemic';
+  const isServer = engine === 'server';
+  const isBrowser = engine === 'browser';
   const exampleList = isEpistemic ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
+  const serverReady = serverApiConfigured();
 
   // Preload the WASM runtime + planner in the background so the first solve is fast.
   useEffect(() => {
@@ -265,11 +310,17 @@ export default function App() {
     clearResults();
   }
 
-  function switchMode(next: 'classical' | 'epistemic') {
-    if (next === mode) return;
-    setMode(next);
-    const list = next === 'epistemic' ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
-    if (list.length) loadExample(list[0].id);
+  function switchEngine(next: Engine) {
+    if (next === engine) return;
+    const crossesExampleSet = (next === 'epistemic') !== (engine === 'epistemic');
+    setEngine(next);
+    clearResults();
+    // Browser and server share the classical examples, so keep the editors when
+    // switching between them; only reset when moving to/from the epistemic set.
+    if (crossesExampleSet) {
+      const list = next === 'epistemic' ? EPISTEMIC_EXAMPLES : CLASSICAL_EXAMPLES;
+      if (list.length) loadExample(list[0].id);
+    }
   }
 
   // Parse + simulate a plan so it can be visualised. Failure here is non-fatal:
@@ -277,8 +328,11 @@ export default function App() {
   function buildPlanState(
     plan: string[],
     solverLabel: string,
-    logText: string,
-    elapsedMs?: number,
+    opts: {
+      logText?: string;
+      elapsedMs?: number;
+      serverStats?: ServerSolveStats;
+    } = {},
   ): PlanState {
     let sim: Simulation | null = null;
     let parsedDomain: Domain | null = null;
@@ -292,8 +346,9 @@ export default function App() {
     }
     return {
       plan,
-      stats: parseStats(logText, plan.length),
-      elapsedMs,
+      stats: parseStats(opts.logText ?? '', plan.length),
+      serverStats: opts.serverStats,
+      elapsedMs: opts.elapsedMs,
       solverLabel,
       sim,
       parsedDomain,
@@ -320,12 +375,10 @@ export default function App() {
         setNoPlan(true);
       } else {
         setPlanState(
-          buildPlanState(
-            res.plan ?? [],
-            preset.label,
-            res.log ?? '',
-            res.elapsedMs,
-          ),
+          buildPlanState(res.plan ?? [], preset.label, {
+            logText: res.log ?? '',
+            elapsedMs: res.elapsedMs,
+          }),
         );
       }
     } catch (err) {
@@ -333,6 +386,34 @@ export default function App() {
     } finally {
       setSolving(false);
     }
+  }
+
+  async function solveServer() {
+    if (!serverReady) return;
+    setServerSolving(true);
+    clearResults();
+    const started = performance.now();
+    const result = await solveClassicalServer(domain, problem);
+    const elapsedMs = performance.now() - started;
+    if (!result.ok) {
+      if (result.error && /no plan/i.test(result.error)) {
+        setNoPlan(true);
+      } else {
+        setSolveError(result.error ?? 'Server solve failed.');
+      }
+      if (result.output) setLog(result.output);
+    } else if (!result.plan || result.plan.length === 0) {
+      setNoPlan(true);
+    } else {
+      setLog(result.output ?? '');
+      setPlanState(
+        buildPlanState(result.plan, 'Server · BFWS (full PDDL)', {
+          elapsedMs,
+          serverStats: result.stats,
+        }),
+      );
+    }
+    setServerSolving(false);
   }
 
   async function compareAll() {
@@ -391,7 +472,10 @@ export default function App() {
   function viewComparisonRow(row: ComparisonRow) {
     if (!row.plan) return;
     setPlanState(
-      buildPlanState(row.plan, row.label, row.log ?? '', row.elapsedMs),
+      buildPlanState(row.plan, row.label, {
+        logText: row.log ?? '',
+        elapsedMs: row.elapsedMs,
+      }),
     );
     setLog(row.log ?? '');
   }
@@ -418,7 +502,7 @@ export default function App() {
           >
             {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
           </button>
-          {!isEpistemic && (
+          {isBrowser && (
             <span
               className={`engine-badge engine-${enginePhase}`}
               title={engineError ?? undefined}
@@ -431,23 +515,26 @@ export default function App() {
 
       {showIntro && <Intro onDismiss={dismissIntro} />}
 
-      <div className="mode-switch" role="tablist" aria-label="Planning mode">
-        <button
-          role="tab"
-          aria-selected={!isEpistemic}
-          className={!isEpistemic ? 'active' : ''}
-          onClick={() => switchMode('classical')}
-        >
-          Classical PDDL
-        </button>
-        <button
-          role="tab"
-          aria-selected={isEpistemic}
-          className={isEpistemic ? 'active' : ''}
-          onClick={() => switchMode('epistemic')}
-        >
-          Epistemic E-PDDL
-        </button>
+      <div
+        className="engine-chooser"
+        role="radiogroup"
+        aria-label="Choose a solver"
+      >
+        {ENGINE_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            role="radio"
+            aria-checked={engine === opt.id}
+            className={`engine-card ${engine === opt.id ? 'active' : ''}`}
+            onClick={() => switchEngine(opt.id)}
+          >
+            <span className="engine-card-head">
+              <span className="engine-card-title">{opt.title}</span>
+              <span className="engine-card-tag">{opt.tag}</span>
+            </span>
+            <span className="engine-card-blurb">{opt.blurb}</span>
+          </button>
+        ))}
       </div>
 
       <section className="toolbar">
@@ -468,7 +555,7 @@ export default function App() {
           </select>
         </label>
 
-        {!isEpistemic && (
+        {isBrowser && (
           <>
             <label className="field">
               <span>Solver</span>
@@ -516,14 +603,33 @@ export default function App() {
             </label>
           </>
         )}
+
+        {isServer && (
+          <button
+            className="solve-btn"
+            onClick={solveServer}
+            disabled={serverSolving || !serverReady}
+            title={
+              serverReady
+                ? 'Solve the full PDDL on the backend (BFWS)'
+                : 'No solver backend is configured for this build'
+            }
+          >
+            {serverSolving ? 'Solving on server…' : 'Solve on server ▶'}
+          </button>
+        )}
       </section>
 
-      {!isEpistemic && <EngineLoader phase={enginePhase} />}
+      {isBrowser && <EngineLoader phase={enginePhase} />}
 
       <p className="solver-desc">
-        {isEpistemic
-          ? 'Epistemic (E-PDDL) mode — these problems are solved on the optional backend (or explained below if none is connected).'
-          : preset.description}
+        {isBrowser && preset.description}
+        {isServer &&
+          (serverReady
+            ? 'Server engine — the full domain and problem are sent to the backend planner (BFWS), which handles negative preconditions, conditional effects and action costs natively. The returned plan is visualised below.'
+            : 'Server engine — this build has no solver backend configured, so server solving is unavailable. The in-browser engine works offline.')}
+        {isEpistemic &&
+          'Epistemic (E-PDDL) mode — these problems are solved on the optional backend (or explained below if none is connected).'}
       </p>
 
       <section className="editors">
@@ -572,11 +678,11 @@ export default function App() {
           />
         )}
 
-        {!isEpistemic && compiledNote && (
+        {isBrowser && compiledNote && (
           <div className="compiled-note">⚙ {compiledNote}</div>
         )}
 
-        {!isEpistemic && engineError && (
+        {isBrowser && engineError && (
           <div className="result-error">
             <strong>Solver engine failed to load.</strong> {engineError}
             <div className="hint">
@@ -590,12 +696,14 @@ export default function App() {
           <div className="result-error">
             <strong>Could not solve.</strong>
             <pre>{solveError}</pre>
-            <div className="hint">
-              pyperplan supports the STRIPS + typing subset only. A common cause
-              is <code>:negative-preconditions</code> (e.g.{' '}
-              <code>(not (...))</code> inside a precondition) — rewrite it using
-              a positive predicate.
-            </div>
+            {isBrowser && (
+              <div className="hint">
+                pyperplan supports the STRIPS + typing subset only. A common
+                cause is <code>:negative-preconditions</code> (e.g.{' '}
+                <code>(not (...))</code> inside a precondition) — rewrite it
+                using a positive predicate, or switch to the Server engine.
+              </div>
+            )}
           </div>
         )}
 
@@ -605,7 +713,7 @@ export default function App() {
           </div>
         )}
 
-        {!isEpistemic && comparison && (
+        {isBrowser && comparison && (
           <ComparisonTable
             rows={comparison}
             progress={{ done: compareProgress, total: SOLVER_PRESETS.length }}
@@ -619,15 +727,42 @@ export default function App() {
               <h2>Plan ({planState.plan.length} steps)</h2>
               <div className="stat-chips">
                 <span className="chip">{planState.solverLabel}</span>
-                {planState.stats.nodesExpanded !== undefined && (
-                  <span className="chip">
-                    {planState.stats.nodesExpanded} nodes expanded
-                  </span>
-                )}
-                {planState.stats.operators !== undefined && (
-                  <span className="chip">
-                    {planState.stats.operators} ground actions
-                  </span>
+                {planState.serverStats ? (
+                  <>
+                    {planState.serverStats.cost !== undefined && (
+                      <span className="chip">
+                        cost {planState.serverStats.cost}
+                      </span>
+                    )}
+                    {planState.serverStats.nodesExpanded !== undefined && (
+                      <span className="chip">
+                        {planState.serverStats.nodesExpanded} nodes expanded
+                      </span>
+                    )}
+                    {planState.serverStats.nodesGenerated !== undefined && (
+                      <span className="chip">
+                        {planState.serverStats.nodesGenerated} nodes generated
+                      </span>
+                    )}
+                    {planState.serverStats.totalTimeMs !== undefined && (
+                      <span className="chip">
+                        {planState.serverStats.totalTimeMs} ms (search)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {planState.stats.nodesExpanded !== undefined && (
+                      <span className="chip">
+                        {planState.stats.nodesExpanded} nodes expanded
+                      </span>
+                    )}
+                    {planState.stats.operators !== undefined && (
+                      <span className="chip">
+                        {planState.stats.operators} ground actions
+                      </span>
+                    )}
+                  </>
                 )}
                 {planState.elapsedMs !== undefined && (
                   <span className="chip">
@@ -676,8 +811,24 @@ export default function App() {
       </section>
 
       <footer className="app-footer">
-        Runs <code>pyperplan</code> in the browser via Pyodide (WebAssembly). No
-        server-side solver.
+        {isBrowser && (
+          <>
+            In-browser engine: <code>pyperplan</code> via Pyodide (WebAssembly),
+            no server round-trip.
+          </>
+        )}
+        {isServer && (
+          <>
+            Server engine: full PDDL solved by <code>BFWS</code> on the backend.
+            The in-browser engine remains fully offline.
+          </>
+        )}
+        {isEpistemic && (
+          <>
+            Epistemic engine: E-PDDL compiled to classical planning and solved on
+            the backend.
+          </>
+        )}
       </footer>
     </div>
   );

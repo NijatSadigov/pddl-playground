@@ -5,9 +5,9 @@ PDDL. Write a planning **domain** and **problem**, choose a **solver**, watch th
 plan execute step by step (with a 2-D grid animation for the *MineField* domain),
 and compare solvers side by side — all running entirely in the visitor's browser.
 
-> **Deploying this?** Jump to **[Deployment](#deployment)**. Short version: it is
-> a plain **static site** — run `npm run build` and serve the `dist/` folder.
-> No backend, no database, no secrets.
+> **Deployment:** see **[Deployment](#deployment)**. In short, this is a plain
+> **static site** — `npm run build` and serve the `dist/` folder. No backend,
+> no database, no secrets.
 
 ---
 
@@ -48,7 +48,7 @@ pddl.example.com {
 Caddy provisions HTTPS automatically. With another server (nginx/Apache/static
 host), just serve `dist/` as the document root.
 
-### Requirements & gotchas (please read before publishing)
+### Requirements and runtime notes
 
 - **Serve over HTTPS.** The app uses a secure-context API (clipboard for "share
   link"); Caddy gives automatic HTTPS out of the box.
@@ -77,19 +77,24 @@ host), just serve `dist/` as the document root.
 npm run preview   # serves the built dist/ locally; open the printed URL, click Solve
 ```
 
-### Optional: enable epistemic (E-PDDL) solving
+### Optional: enable server-side solving
 
-By default the site is fully offline and epistemic examples are *explain-only*.
-To enable real epistemic solving, deploy the separate
-[`pddl-epistemic-backend`](../pddl-epistemic-backend) service and build the site
-with its URL:
+By default the site is fully offline: the in-browser engine works without any
+backend, and the server/epistemic engines show an explanatory note. Deploying the
+separate [`pddl-epistemic-backend`](../pddl-epistemic-backend) service and
+building with its URL enables two additional engines:
 
 ```bash
-VITE_EPISTEMIC_API=https://epistemic.yourdomain.com npm run build
+VITE_EPISTEMIC_API=https://epistemic.example.com npm run build
 ```
 
-The epistemic examples then gain a **"Solve on server"** button. With the
-variable unset, nothing changes and the build stays 100% static/offline.
+- **Server (full PDDL)** — sends the domain and problem to the backend's BFWS
+  planner, which handles negative preconditions, conditional effects and action
+  costs natively (no compilation step).
+- **Epistemic (E-PDDL)** — solves multi-agent epistemic problems on the backend.
+
+With the variable unset, both engines are disabled and the build stays 100%
+static/offline.
 
 ---
 
@@ -97,9 +102,14 @@ variable unset, nothing changes and the build stays 100% static/offline.
 
 - **Two live PDDL editors** (domain + problem) with syntax highlighting and
   inline validation (unbalanced parentheses, missing headers).
-- **Multiple solvers** — `pyperplan` search/heuristic combinations as presets:
-  BFS (uninformed), A\* + hFF, A\* + hMax / LM-Cut (admissible → optimal),
-  Greedy Best-First, Weighted A\*.
+- **Three solver engines** — a top-level picker selects where planning runs:
+  *in-browser* (`pyperplan`, fully offline), *server* (full-PDDL BFWS on the
+  optional backend), and *epistemic* (E-PDDL on the backend). The server and
+  epistemic engines are enabled only when a backend URL is configured at build
+  time (see [Deployment](#optional-enable-server-side-solving)).
+- **Multiple in-browser solvers** — `pyperplan` search/heuristic combinations as
+  presets: BFS (uninformed), A\* + hFF, A\* + hMax / LM-Cut (admissible →
+  optimal), Greedy Best-First, Weighted A\*.
 - **"Compare all"** — runs every solver on the same problem and tabulates plan
   length, nodes expanded and time, so students see the search/heuristic
   trade-off (e.g. uninformed BFS expands far more nodes than A\* + hFF).
@@ -178,19 +188,22 @@ Delete effects (e.g. `(not (at ?r ?from))`) are pure STRIPS and never need rewri
 
 ## Scope & future work
 
-The solver runs **fully in the browser** by design, so the tool stays reliable
-and offline. This covers the **STRIPS + typing** subset (plus negative
-preconditions via the compiler).
+The default in-browser engine runs **fully in the browser**, so the tool stays
+reliable and offline. It covers the **STRIPS + typing** subset (plus negative
+preconditions via the compiler). The optional backend extends this:
 
-- **Full-PDDL features** (conditional effects, quantifiers, action costs,
-  temporal planning) need a heavier planner such as **Fast Downward**, which does
-  not run in the browser. These could be added later via a self-hosted
-  [planning-as-a-service](https://github.com/AI-Planning/planning-as-a-service)
-  backend as an optional "online solver".
-- **Epistemic (E-PDDL) solving** is solved in the literature by *compiling to
-  classical planning* ([pdkb-planning](https://github.com/QuMuLab/pdkb-planning),
-  [E-PDDL](https://github.com/FrancescoFabiano/E-PDDL)) and running Fast Downward —
-  also a hosted-backend task. The in-app explorer documents this pipeline.
+- **Full-PDDL features** (negative preconditions, conditional effects, action
+  costs) are handled by the **server engine**, which solves on the backend's
+  BFWS planner. This avoids the in-browser compiler and supports domains
+  `pyperplan` cannot parse.
+- **Epistemic (E-PDDL) solving** is performed by the **epistemic engine**, which
+  *compiles to classical planning*
+  ([pdkb-planning](https://github.com/QuMuLab/pdkb-planning),
+  [E-PDDL](https://github.com/FrancescoFabiano/E-PDDL)) on the backend. The in-app
+  explorer documents this pipeline.
+- **Further work** — optimal planning with a heavier planner such as
+  [Fast Downward](https://www.fast-downward.org/) and temporal planning are not
+  yet wired up; both would extend the same backend.
 
 ## Tech stack
 
@@ -202,3 +215,6 @@ loaded at runtime, not bundled) · lz-string (share links) · Vitest (tests).
 `pyperplan` (the planner) is GPL-licensed and is loaded **at runtime** in the
 browser from PyPI — it is not bundled into this site's source. Built as an MSc
 portfolio project alongside a dissertation on SMT/BMC for AI planning.
+
+Developed with assistance from Claude Code, used to refine the design and the
+wording of the documentation and UI.

@@ -79,31 +79,67 @@
   border-color: rgba(255, 107, 107, 0.4);
 }
 
-/* ---- mode switch (PDDL / E-PDDL) ---- */
-.mode-switch {
-  display: inline-flex;
+/* ---- engine chooser (in-browser / server / epistemic) ---- */
+.engine-chooser {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   margin-top: 22px;
+}
+@media (max-width: 760px) {
+  .engine-chooser {
+    grid-template-columns: 1fr;
+  }
+}
+.engine-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--panel-2);
-  padding: 4px;
-  gap: 4px;
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
-.mode-switch button {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 18px;
-  border-radius: 7px;
+.engine-card:hover {
+  border-color: var(--accent);
 }
-.mode-switch button.active {
-  background: var(--accent);
-  color: var(--on-accent);
+.engine-card.active {
+  border-color: var(--accent);
+  background: rgba(124, 156, 255, 0.1);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
-.mode-switch button:not(.active):hover {
+.engine-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.engine-card-title {
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text-h);
+}
+.engine-card.active .engine-card-title {
+  color: var(--accent);
+}
+.engine-card-tag {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.engine-card-blurb {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
 }
 
 /* ---- toolbar ---- */

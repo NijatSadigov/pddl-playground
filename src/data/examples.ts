@@ -432,7 +432,7 @@ export const EXAMPLES: Example[] = [
     id: 'closure-pdkbddl',
     name: 'Closure (real PDKBDDL · backend-solvable)',
     description:
-      'A minimal but real PDKBDDL problem. Abstract, but genuinely solvable when an epistemic backend (pdkb-planning + Fast Downward) is connected.',
+      'A minimal but real PDKBDDL problem. Abstract, but genuinely solvable when an epistemic backend (pdkb-planning) is connected.',
     domain: CLOSURE_DOMAIN,
     problem: CLOSURE_PROBLEM,
     epistemic: true,

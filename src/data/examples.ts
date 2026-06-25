@@ -56,6 +56,29 @@ export interface MinefieldSpec {
 
 const loc = (r: number, c: number) => `loc-${r}-${c}`;
 
+// Render the grid as an ASCII sketch for the top of a problem file, so a reader
+// can see the layout at a glance instead of decoding the flat fact list.
+function gridSketch(spec: MinefieldSpec): string {
+  const { size, robot, golds, obstacles } = spec;
+  const symbol = (r: number, c: number) => {
+    if (robot[0] === r && robot[1] === c) return 'R';
+    if (golds.some(([gr, gc]) => gr === r && gc === c)) return 'G';
+    if (obstacles.some(([or, oc]) => or === r && oc === c)) return 'X';
+    return '.';
+  };
+  const rows: string[] = [];
+  for (let r = 0; r < size; r++) {
+    const cells: string[] = [];
+    for (let c = 0; c < size; c++) cells.push(symbol(r, c));
+    rows.push(`;;     ${cells.join(' ')}`);
+  }
+  return (
+    `;; Grid layout (row 0 is the top row, loc-row-col):\n` +
+    `${rows.join('\n')}\n` +
+    `;;   R = robot start   G = gold   X = obstacle (mine)   . = open cell`
+  );
+}
+
 // Generate a MineField problem file from a grid specification. Reused by the
 // "random instance" button and the default example.
 export function makeMinefieldProblem(spec: MinefieldSpec): string {
@@ -92,19 +115,27 @@ export function makeMinefieldProblem(spec: MinefieldSpec): string {
   const uncollected = golds.map((_, i) => `(uncollected g${i + 1})`);
   const goldGoal = golds.map((_, i) => `(collected g${i + 1})`).join(' ');
 
-  return `;; ${size}x${size} MineField instance
+  return `;; ${size}x${size} MineField instance (positive-precondition encoding)
+${gridSketch(spec)}
 (define (problem ${name})
   (:domain minefield)
+  ;; One robot, the gold pieces, and one location object per grid cell.
   (:objects
     r1 - robot
     ${goldObjs} - gold
     ${locations.join(' ')} - location)
   (:init
+    ;; where the robot starts
     (at r1 ${loc(robot[0], robot[1])})
+    ;; where each gold piece sits
     ${goldAt.join('\n    ')}
+    ;; gold not yet collected
     ${uncollected.join(' ')}
+    ;; cells with no obstacle (the positive 'clear' encoding)
     ${clears.join('\n    ')}
+    ;; which cells are adjacent (4-connected, both directions)
     ${adj.join('\n    ')})
+  ;; Goal: collect every gold piece.
   (:goal (and ${goldGoal})))
 `;
 }
@@ -114,20 +145,28 @@ export function makeMinefieldProblem(spec: MinefieldSpec): string {
 // pyperplan cannot solve this directly; the app compiles it to a positive
 // equivalent on the fly (see compileNegatives.ts).
 
-export const MINEFIELD_NEG_DOMAIN = `;; MineField — the ORIGINAL dissertation domain, using :negative-preconditions.
+export const MINEFIELD_NEG_DOMAIN = `;; MineField — the ORIGINAL dissertation domain (uses :negative-preconditions).
+;; A robot moves around a grid of locations, avoiding obstacles (mines), and
+;; collects every gold piece. Locations are linked by an 'adjacent' relation, so
+;; the grid's size and shape live entirely in the problem file; this domain works
+;; for any grid.
 (define (domain minefield)
   (:requirements :strips :typing :negative-preconditions)
   (:types robot gold location - object)
   (:predicates
-    (at ?r - robot ?l - location)
-    (gold-at ?g - gold ?l - location)
-    (obstacle-at ?l - location)
-    (adjacent ?l1 - location ?l2 - location)
-    (collected ?g - gold))
+    (at ?r - robot ?l - location)             ;; robot ?r is on cell ?l
+    (gold-at ?g - gold ?l - location)         ;; gold ?g lies on cell ?l
+    (obstacle-at ?l - location)               ;; cell ?l holds an obstacle (mine)
+    (adjacent ?l1 - location ?l2 - location)  ;; you can step from ?l1 to ?l2
+    (collected ?g - gold))                    ;; gold ?g has been picked up
+  ;; Step to an adjacent cell, provided it has no obstacle.
+  ;; The negative precondition (not (obstacle-at ?to)) is exactly what pyperplan
+  ;; cannot read directly — see "How does the compiler work?" under the editors.
   (:action move
     :parameters (?r - robot ?from - location ?to - location)
     :precondition (and (at ?r ?from) (adjacent ?from ?to) (not (obstacle-at ?to)))
     :effect (and (not (at ?r ?from)) (at ?r ?to)))
+  ;; Pick up the gold on the robot's current cell (each piece only once).
   (:action collect
     :parameters (?r - robot ?g - gold ?l - location)
     :precondition (and (at ?r ?l) (gold-at ?g ?l) (not (collected ?g)))
@@ -160,18 +199,25 @@ function makeMinefieldNegProblem(spec: MinefieldSpec): string {
   const obstacleAt = obstacles.map(([r, c]) => `(obstacle-at ${loc(r, c)})`);
   const goldGoal = golds.map((_, i) => `(collected g${i + 1})`).join(' ');
 
-  return `;; ${size}x${size} MineField instance (original encoding)
+  return `;; ${size}x${size} MineField instance (original :negative-preconditions encoding)
+${gridSketch(spec)}
 (define (problem ${name})
   (:domain minefield)
+  ;; One robot, the gold pieces, and one location object per grid cell.
   (:objects
     r1 - robot
     ${goldObjs} - gold
     ${locations.join(' ')} - location)
   (:init
+    ;; where the robot starts
     (at r1 ${loc(robot[0], robot[1])})
+    ;; where each gold piece sits
     ${goldAt.join('\n    ')}
+    ;; obstacles (mines) the robot must avoid
     ${obstacleAt.join('\n    ')}
+    ;; which cells are adjacent (4-connected, both directions)
     ${adj.join('\n    ')})
+  ;; Goal: collect every gold piece.
   (:goal (and ${goldGoal})))
 `;
 }
@@ -391,7 +437,7 @@ export const EXAMPLES: Example[] = [
     id: 'minefield',
     name: 'MineField (dissertation domain)',
     description:
-      'A robot collects all gold on a grid while avoiding obstacles — the SMT/BMC dissertation domain, rendered as a 2-D grid. It uses :negative-preconditions, which the app auto-compiles so pyperplan can solve it.',
+      'A robot collects all the gold on a grid while avoiding obstacles (mines) — the dissertation domain, shown as a 2-D grid. The problem file opens with an ASCII sketch of the layout. It is written with :negative-preconditions, which pyperplan cannot solve directly: the in-browser engine compiles them to a positive form automatically (see the toggle and explanation under the editors), or the Server engine solves it natively.',
     domain: MINEFIELD_NEG_DOMAIN,
     problem: MINEFIELD_NEG_PROBLEM,
   },

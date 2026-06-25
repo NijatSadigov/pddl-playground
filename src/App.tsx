@@ -5,6 +5,7 @@ import { EngineLoader } from './components/EngineLoader';
 import { PlanVisualiser } from './components/PlanVisualiser';
 import { ComparisonTable, type ComparisonRow } from './components/ComparisonTable';
 import { EpistemicPanel } from './components/EpistemicPanel';
+import { CompileInfo } from './components/CompileInfo';
 import {
   epistemicApiConfigured,
   solveEpistemic,
@@ -657,6 +658,8 @@ export default function App() {
         {isEpistemic &&
           'Epistemic (E-PDDL) mode — these problems are solved on the optional backend (or explained below if none is connected).'}
       </p>
+
+      {isBrowser && <CompileInfo enabled={compileNeg} />}
 
       <section className="editors">
         <CodeEditor

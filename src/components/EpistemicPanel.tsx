@@ -10,7 +10,7 @@ const STEPS = [
   { label: 'E-PDDL', sub: 'what agents know' },
   { label: 'PDKB-PDDL', sub: 'knowledge bases' },
   { label: 'classical PDDL', sub: 'with conditional effects' },
-  { label: 'Fast Downward', sub: 'finds the plan' },
+  { label: 'BFWS planner', sub: 'finds the plan' },
 ];
 
 interface Props {
@@ -48,8 +48,8 @@ export function EpistemicPanel({
             {solving ? 'Solving on server…' : 'Solve on server ▶'}
           </button>
           <span className="epi-solve-note">
-            Sends the problem to the epistemic backend (pdkb-planning + Fast
-            Downward). Network-dependent — the classical playground stays offline.
+            Sends the problem to the epistemic backend (pdkb-planning). Network-
+            dependent — the classical playground stays offline.
           </span>
 
           {result && (
@@ -110,8 +110,8 @@ export function EpistemicPanel({
         The same trick as this app's negative-precondition compiler — a hard
         feature is <em>translated</em> into something a classical planner can
         solve. The compiled output uses conditional effects, which the in-browser
-        solver (pyperplan) doesn't support, so the final step runs{' '}
-        <strong>Fast Downward</strong> on a real machine.
+        solver (pyperplan) doesn't support, so the final step runs a full classical
+        planner (<strong>BFWS</strong>) on the backend.
       </p>
 
       <h3 className="epi-sub">References</h3>
@@ -120,8 +120,8 @@ export function EpistemicPanel({
           <a href="https://github.com/QuMuLab/pdkb-planning" target="_blank" rel="noreferrer">
             pdkb-planning
           </a>{' '}
-          — Muise's RP-MEP compiler (epistemic → classical), solved with Fast
-          Downward.
+          — Muise's RP-MEP compiler (epistemic → classical), solved with a
+          classical planner.
         </li>
         <li>
           <a href="https://github.com/FrancescoFabiano/E-PDDL" target="_blank" rel="noreferrer">

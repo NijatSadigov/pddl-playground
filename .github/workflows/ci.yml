@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
+      # npm install (not ci): the committed lockfile is generated on Windows and
+      # omits some Linux-only native transitive deps, which strict `npm ci` rejects.
+      - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build

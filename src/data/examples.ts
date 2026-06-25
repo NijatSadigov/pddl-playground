@@ -438,7 +438,7 @@ const CLOSURE_PROBLEM = `(define (problem prob)
 // only way to satisfy "enemy does NOT know" is a targeted secure_ping rather than
 // a public_announce — the planner works that out. "Agent does not know p" is
 // written ![ag](p); [ag](p) is "ag knows p". {AK} marks common-knowledge facts.
-const HANDSHAKE_DOMAIN = `;; Secure Handshake — cooperative, truthful coordination.
+const HANDSHAKE_DOMAIN = `;; Secure Handshake - cooperative, truthful coordination.
 ;;   [ag](p)  = agent ag knows p        ![ag](p) = ag does NOT know p
 ;;   {AK}(..) = common knowledge (every agent observes it)
 (define (domain secure-handshake)
@@ -450,7 +450,7 @@ const HANDSHAKE_DOMAIN = `;; Secure Handshake — cooperative, truthful coordina
         {AK}(adjacent ?l1 - loc ?l2 - loc)
             (targetat ?l - loc))
 
-    ;; Open channel: everyone — including the eavesdropping enemy — learns it.
+    ;; Open channel: everyone (including the eavesdropping enemy) learns it.
     (:action public_announce
         :derive-condition  always
         :parameters        (?ag - agent ?l - loc)
@@ -476,7 +476,7 @@ const HANDSHAKE_DOMAIN = `;; Secure Handshake — cooperative, truthful coordina
 `;
 
 const HANDSHAKE_PROBLEM = `;; 2x2 grid. Scout@p00 knows the target is at p01; interceptor@p11; enemy@p10.
-;; Goal: interceptor knows the target AND the enemy does not — so the planner
+;; Goal: interceptor knows the target AND the enemy does not, so the planner
 ;; must choose secure_ping over public_announce.
 (define (problem secure-handshake-2x2)
     (:domain secure-handshake)
@@ -505,7 +505,7 @@ const HANDSHAKE_PROBLEM = `;; 2x2 grid. Scout@p00 knows the target is at p01; in
 // default logic is KD (belief), which has no truth axiom, so a belief can be
 // false — deceptive_tell solves it. (An S5/knowledge engine would reject this,
 // since knowledge must be true.)
-const BLUFF_DOMAIN = `;; Tactical Bluff — adversarial deception (doxastic / belief logic).
+const BLUFF_DOMAIN = `;; Tactical Bluff - adversarial deception (doxastic / belief logic).
 ;;   [ag](p) here reads as "ag believes p"; beliefs need not be true.
 (define (domain tactical-bluff)
     (:agents white black)
@@ -523,7 +523,7 @@ const BLUFF_DOMAIN = `;; Tactical Bluff — adversarial deception (doxastic / be
                                 (when (!in ?b) [?ag](!in ?b))))
 
     ;; Deceptive tell: a sender who knows a box is empty makes the receiver
-    ;; believe the asset is in it — a deliberate lie the receiver trusts.
+    ;; believe the asset is in it: a deliberate lie the receiver trusts.
     (:action deceptive_tell
         :derive-condition  always
         :parameters        (?sender ?receiver - agent ?b - box)
@@ -533,7 +533,7 @@ const BLUFF_DOMAIN = `;; Tactical Bluff — adversarial deception (doxastic / be
 `;
 
 const BLUFF_PROBLEM = `;; Asset really in Box A. White knows it; Black knows nothing yet.
-;; Goal: White still knows the truth (Box A) while Black BELIEVES Box B — a
+;; Goal: White still knows the truth (Box A) while Black BELIEVES Box B - a
 ;; false belief that draws Black away from the asset.
 (define (problem tactical-bluff)
     (:domain tactical-bluff)

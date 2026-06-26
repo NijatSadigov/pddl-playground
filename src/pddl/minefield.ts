@@ -44,8 +44,8 @@ export function gridLayout(problem: Problem): GridLayout {
     }
   }
 
-  // Two conventions: the positive variant flags passable cells with (clear loc)
-  // — anything not clear is an obstacle; the original domain flags obstacles
+  // Two conventions: the positive variant flags passable cells with (clear loc),
+  // so anything not clear is an obstacle; the original domain flags obstacles
   // directly with (obstacle-at loc).
   const clearAtoms = problem.init.filter((a) => a[0] === 'clear');
   if (clearAtoms.length > 0) {

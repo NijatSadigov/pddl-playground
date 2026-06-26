@@ -24,9 +24,9 @@ import { EXAMPLES, looksEpistemic } from './data/examples';
 
 // The app offers three solver engines, each with its own example set and UI,
 // chosen by a top-level picker:
-//   browser   — pyperplan, runs entirely in-browser (STRIPS + typing subset)
-//   server    — full-PDDL classical solve on the optional backend (BFWS)
-//   epistemic — multi-agent E-PDDL, solved on the optional backend
+//   browser:   pyperplan, runs entirely in-browser (STRIPS + typing subset)
+//   server:    full-PDDL classical solve on the optional backend (BFWS)
+//   epistemic: multi-agent E-PDDL, solved on the optional backend
 type Engine = 'browser' | 'server' | 'epistemic';
 
 const ENGINE_OPTIONS: {
@@ -358,8 +358,8 @@ export default function App() {
     }
   }
 
-  // Parse + simulate a plan so it can be visualised. Failure here is non-fatal:
-  // we still show the textual plan.
+  // Parse and simulate a plan so it can be visualised. Failure here is
+  // non-fatal; the textual plan is still shown.
   function buildPlanState(
     plan: string[],
     solverLabel: string,

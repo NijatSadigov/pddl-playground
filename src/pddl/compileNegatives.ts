@@ -1,8 +1,8 @@
 // Compile :negative-preconditions away into an equivalent positive STRIPS+typing
 // encoding that pyperplan accepts ("positive normal form").
 //
-// For every predicate P that appears negated in a precondition or goal we add a
-// complementary predicate `not-P`, then:
+// For every predicate P that appears negated in a precondition or goal, a
+// complementary predicate `not-P` is introduced, then:
 //   * preconditions/goal:  (not (P a))      ->  (not-P a)
 //   * effects that add P:   (P a)            ->  (P a) + (not (not-P a))
 //   * effects that delete P:(not (P a))      ->  (not (P a)) + (not-P a)

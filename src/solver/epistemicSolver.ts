@@ -22,8 +22,8 @@ export interface EpistemicResult {
 }
 
 // The two epistemic planners reachable on the backend:
-//   rpmep — pdkb-planning (PDKBDDL), compiles to classical planning
-//   efp   — native EFP (E-PDDL), builds explicit possibility/Kripke states
+//   rpmep: pdkb-planning (PDKBDDL), compiles to classical planning
+//   efp:   native EFP (E-PDDL), builds explicit possibility/Kripke states
 export type EpistemicPlanner = 'rpmep' | 'efp';
 
 export async function solveEpistemic(pdkbddl: string): Promise<EpistemicResult> {

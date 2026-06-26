@@ -1,5 +1,5 @@
-// A small, forgiving PDDL parser. It is NOT a full PDDL implementation — it
-// extracts exactly what the visualiser needs: action schemas (parameters +
+// A small, forgiving PDDL parser. It is not a full PDDL implementation; it
+// extracts what the visualiser needs: action schemas (parameters and
 // add/delete effects), the problem's initial state, objects, and the goal.
 // PDDL is case-insensitive, so everything is lower-cased for canonical matching
 // (pyperplan emits lower-cased plan steps too).

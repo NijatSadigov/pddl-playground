@@ -8,8 +8,8 @@ import './EpistemicPanel.css';
 // Shown in epistemic mode. Epistemic planning is not solved in the browser; the
 // panel explains how the chosen backend planner solves it and, when a backend is
 // configured, offers to solve on the server.
-//   rpmep — pdkb-planning: compile the epistemic problem to classical planning.
-//   efp   — native EFP: build and search explicit epistemic states.
+//   rpmep: pdkb-planning, compiles the epistemic problem to classical planning.
+//   efp:   native EFP, builds and searches explicit epistemic states.
 
 const RPMEP_STEPS = [
   { label: 'PDKBDDL', sub: 'what agents know' },

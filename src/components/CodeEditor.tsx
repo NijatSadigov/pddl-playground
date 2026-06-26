@@ -2,8 +2,8 @@ import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { commonLisp } from '@codemirror/legacy-modes/mode/commonlisp';
 
-// PDDL is S-expression / Lisp-like, so the Common Lisp stream parser gives us
-// reasonable bracket + symbol highlighting without a custom grammar.
+// PDDL is S-expression / Lisp-like, so the Common Lisp stream parser provides
+// reasonable bracket and symbol highlighting without a custom grammar.
 const pddlLanguage = StreamLanguage.define(commonLisp);
 
 interface Props {

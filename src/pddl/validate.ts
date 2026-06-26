@@ -1,6 +1,6 @@
 // Lightweight, line-aware PDDL sanity check for inline editor feedback. This is
-// not a full validator — it catches the mistakes students actually make:
-// unbalanced parentheses and a missing (define (domain|problem ...)) header.
+// not a full validator; it catches the common mistakes: unbalanced parentheses
+// and a missing (define (domain|problem ...)) header.
 
 export function validatePddl(
   text: string,

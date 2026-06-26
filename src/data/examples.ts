@@ -1,5 +1,5 @@
-// Built-in example domains. All are written in the STRIPS + typing subset that
-// pyperplan supports (positive preconditions only — see README).
+// Built-in example domains. The classical ones are written in the STRIPS +
+// typing subset that pyperplan supports (positive preconditions only).
 
 export interface Example {
   id: string;
@@ -7,7 +7,7 @@ export interface Example {
   description: string;
   domain: string;
   problem: string;
-  /** Epistemic example, solved on the backend (not in-browser) — see EpistemicPanel. */
+  /** Epistemic example, solved on the backend (not in-browser). See EpistemicPanel. */
   epistemic?: boolean;
   /** Epistemic example written in E-PDDL for the native EFP planner (rather than
    * PDKBDDL for RP-MEP). Both are epistemic; this picks the backend planner. */
@@ -23,7 +23,7 @@ export function looksEpistemic(domainText: string): boolean {
 
 // --- MineField (the dissertation domain, positive-precondition variant) --------
 
-export const MINEFIELD_DOMAIN = `;; MineField domain — robot collects all gold on a grid, avoiding obstacles.
+export const MINEFIELD_DOMAIN = `;; MineField domain - robot collects all gold on a grid, avoiding obstacles.
 ;; Positive-precondition STRIPS variant (pyperplan-friendly):
 ;;   (clear ?l)        instead of  (not (obstacle-at ?l))
 ;;   (uncollected ?g)  instead of  (not (collected ?g))
@@ -148,7 +148,7 @@ ${gridSketch(spec)}
 // pyperplan cannot solve this directly; the app compiles it to a positive
 // equivalent on the fly (see compileNegatives.ts).
 
-export const MINEFIELD_NEG_DOMAIN = `;; MineField — the ORIGINAL dissertation domain (uses :negative-preconditions).
+export const MINEFIELD_NEG_DOMAIN = `;; MineField - the ORIGINAL dissertation domain (uses :negative-preconditions).
 ;; A robot moves around a grid of locations, avoiding obstacles (mines), and
 ;; collects every gold piece. Locations are linked by an 'adjacent' relation, so
 ;; the grid's size and shape live entirely in the problem file; this domain works
@@ -160,11 +160,11 @@ export const MINEFIELD_NEG_DOMAIN = `;; MineField — the ORIGINAL dissertation 
     (at ?r - robot ?l - location)             ;; robot ?r is on cell ?l
     (gold-at ?g - gold ?l - location)         ;; gold ?g lies on cell ?l
     (obstacle-at ?l - location)               ;; cell ?l holds an obstacle (mine)
-    (adjacent ?l1 - location ?l2 - location)  ;; you can step from ?l1 to ?l2
+    (adjacent ?l1 - location ?l2 - location)  ;; ?l1 connects to ?l2
     (collected ?g - gold))                    ;; gold ?g has been picked up
   ;; Step to an adjacent cell, provided it has no obstacle.
   ;; The negative precondition (not (obstacle-at ?to)) is exactly what pyperplan
-  ;; cannot read directly — see "How does the compiler work?" under the editors.
+  ;; cannot read directly - see "How does the compiler work?" under the editors.
   (:action move
     :parameters (?r - robot ?from - location ?to - location)
     :precondition (and (at ?r ?from) (adjacent ?from ?to) (not (obstacle-at ?to)))
@@ -241,7 +241,7 @@ const MINEFIELD_NEG_PROBLEM = makeMinefieldNegProblem({
 
 // --- Gripper (classic IPC domain) ---------------------------------------------
 
-const GRIPPER_DOMAIN = `;; Gripper — a robot with two grippers moves balls between two rooms.
+const GRIPPER_DOMAIN = `;; Gripper - a robot with two grippers moves balls between two rooms.
 (define (domain gripper)
   (:requirements :strips :typing)
   (:types room ball gripper)
@@ -280,7 +280,7 @@ const GRIPPER_PROBLEM = `;; Move two balls from rooma to roomb.
 
 // --- Blocksworld (classic) ----------------------------------------------------
 
-const BLOCKSWORLD_DOMAIN = `;; Blocksworld — a robot arm stacks blocks. Positive preconditions only.
+const BLOCKSWORLD_DOMAIN = `;; Blocksworld - a robot arm stacks blocks. Positive preconditions only.
 (define (domain blocksworld)
   (:requirements :strips :typing)
   (:types block)
@@ -321,7 +321,7 @@ const BLOCKSWORLD_PROBLEM = `;; Build the tower A on B on C from three blocks on
 
 // --- Towers of Hanoi ----------------------------------------------------------
 
-const HANOI_DOMAIN = `;; Towers of Hanoi — move discs between pegs, never a larger disc onto a smaller.
+const HANOI_DOMAIN = `;; Towers of Hanoi - move discs between pegs, never a larger disc onto a smaller.
 (define (domain hanoi)
   (:requirements :strips :typing)
   (:types obj)
@@ -350,7 +350,7 @@ const HANOI_PROBLEM = `;; Three discs, three pegs. Move the stack from peg1 to p
   (:goal (and (on d3 peg3) (on d2 d3) (on d1 d2))))
 `;
 
-// --- Epistemic planning (E-PDDL) — illustrative, NOT solved in-browser --------
+// --- Epistemic planning (E-PDDL): illustrative, not solved in-browser ---------
 
 const COIN_DOMAIN = `;; Coin in the Box - a small REAL PDKBDDL epistemic example (backend-solvable).
 ;;   [a](p)  agent a knows/believes p     <a>(p)  a considers p possible     !p  not p
@@ -439,8 +439,8 @@ const CLOSURE_PROBLEM = `(define (problem prob)
 // Three agents on a 2x2 grid. The scout knows where the target is; the
 // interceptor must come to know it while the eavesdropping enemy must not. The
 // only way to satisfy "enemy does NOT know" is a targeted secure_ping rather than
-// a public_announce — the planner works that out. "Agent does not know p" is
-// written ![ag](p); [ag](p) is "ag knows p". {AK} marks common-knowledge facts.
+// a public_announce. "Agent does not know p" is written ![ag](p); [ag](p) is
+// "ag knows p". {AK} marks common-knowledge facts.
 const HANDSHAKE_DOMAIN = `;; Secure Handshake - cooperative, truthful coordination.
 ;;   [ag](p)  = agent ag knows p        ![ag](p) = ag does NOT know p
 ;;   {AK}(..) = common knowledge (every agent observes it)
@@ -506,8 +506,8 @@ const HANDSHAKE_PROBLEM = `;; 2x2 grid. Scout@p00 knows the target is at p01; in
 // White knows the asset is in Box A; Black does not. The goal asks White to
 // instill a FALSE belief in Black: that the asset is in Box B. pdkb-planning's
 // default logic is KD (belief), which has no truth axiom, so a belief can be
-// false — deceptive_tell solves it. (An S5/knowledge engine would reject this,
-// since knowledge must be true.)
+// false, and deceptive_tell solves it. (An S5/knowledge engine would reject
+// this, since knowledge must be true.)
 const BLUFF_DOMAIN = `;; Tactical Bluff - adversarial deception (doxastic / belief logic).
 ;;   [ag](p) here reads as "ag believes p"; beliefs need not be true.
 (define (domain tactical-bluff)
@@ -558,7 +558,7 @@ const BLUFF_PROBLEM = `;; Asset really in Box A. White knows it; Black knows not
 
 // --- Thief and Guard (PDKBDDL, adversarial) -----------------------------------
 // A small adversarial epistemic domain. The thief reaches its goal by ambushing
-// while it does not yet know the guard is present (![t](guard)) — a negative
+// while it does not yet know the guard is present (![t](guard)), a negative
 // knowledge precondition.
 const THIEF_DOMAIN = `;; Thief and Guard - a small adversarial epistemic domain.
 ;;   [g](thief) = the guard knows a thief is present   ![t](guard) = thief does NOT know
@@ -714,7 +714,7 @@ export const EXAMPLES: Example[] = [
     id: 'minefield',
     name: 'MineField (dissertation domain)',
     description:
-      'A robot collects all the gold on a grid while avoiding obstacles (mines) — the dissertation domain, shown as a 2-D grid. The problem file opens with an ASCII sketch of the layout. It is written with :negative-preconditions, which pyperplan cannot solve directly: the in-browser engine compiles them to a positive form automatically (see the toggle and explanation under the editors), or the Server engine solves it natively.',
+      'A robot collects all the gold on a grid while avoiding obstacles (mines) - the dissertation domain, shown as a 2-D grid. The problem file opens with an ASCII sketch of the layout. It is written with :negative-preconditions, which pyperplan cannot solve directly: the in-browser engine compiles them to a positive form automatically (see the toggle and explanation under the editors), or the Server engine solves it natively.',
     domain: MINEFIELD_NEG_DOMAIN,
     problem: MINEFIELD_NEG_PROBLEM,
   },
@@ -722,7 +722,7 @@ export const EXAMPLES: Example[] = [
     id: 'gripper',
     name: 'Gripper (classic)',
     description:
-      'A two-gripper robot moves balls between rooms — a classic International Planning Competition benchmark.',
+      'A two-gripper robot moves balls between rooms - a classic International Planning Competition benchmark.',
     domain: GRIPPER_DOMAIN,
     problem: GRIPPER_PROBLEM,
   },
@@ -730,7 +730,7 @@ export const EXAMPLES: Example[] = [
     id: 'blocksworld',
     name: 'Blocksworld (classic)',
     description:
-      'A robot arm stacks blocks into a target tower — the canonical AI-planning teaching domain.',
+      'A robot arm stacks blocks into a target tower - the canonical AI-planning teaching domain.',
     domain: BLOCKSWORLD_DOMAIN,
     problem: BLOCKSWORLD_PROBLEM,
   },
@@ -764,7 +764,7 @@ export const EXAMPLES: Example[] = [
     id: 'secure-handshake',
     name: 'Secure Handshake (coordination)',
     description:
-      'Three agents on a 2x2 grid: a scout that knows the target location, an interceptor that must learn it, and an enemy eavesdropping on the public channel. The goal requires the interceptor to know the target while the enemy does NOT — so the planner picks the targeted secure_ping over a public_announce. Solves on the backend to (secure_ping_scout_interceptor_p01).',
+      'Three agents on a 2x2 grid: a scout that knows the target location, an interceptor that must learn it, and an enemy eavesdropping on the public channel. The goal requires the interceptor to know the target while the enemy does NOT - so the planner picks the targeted secure_ping over a public_announce. Solves on the backend to (secure_ping_scout_interceptor_p01).',
     domain: HANDSHAKE_DOMAIN,
     problem: HANDSHAKE_PROBLEM,
     epistemic: true,
@@ -773,7 +773,7 @@ export const EXAMPLES: Example[] = [
     id: 'tactical-bluff',
     name: 'Tactical Bluff (deception · KD45)',
     description:
-      'White knows an asset is in Box A; the goal is to make Black hold the FALSE belief that it is in Box B. pdkb-planning uses belief (KD) logic by default — beliefs need not be true — so the deception is representable and solves to (deceptive_tell_white_black_boxb). A pure S5/knowledge engine would reject it, since knowledge must be true.',
+      'White knows an asset is in Box A; the goal is to make Black hold the FALSE belief that it is in Box B. pdkb-planning uses belief (KD) logic by default - beliefs need not be true - so the deception is representable and solves to (deceptive_tell_white_black_boxb). A pure S5/knowledge engine would reject it, since knowledge must be true.',
     domain: BLUFF_DOMAIN,
     problem: BLUFF_PROBLEM,
     epistemic: true,
@@ -782,7 +782,7 @@ export const EXAMPLES: Example[] = [
     id: 'thief',
     name: 'Thief and Guard (adversarial)',
     description:
-      'A small adversarial epistemic domain. The thief reaches its goal by ambushing while it does not yet know the guard is present — a negative-knowledge precondition ![t](guard). Solves to (ambush). (RP-MEP / PDKBDDL.)',
+      'A small adversarial epistemic domain. The thief reaches its goal by ambushing while it does not yet know the guard is present - a negative-knowledge precondition ![t](guard). Solves to (ambush). (RP-MEP / PDKBDDL.)',
     domain: THIEF_DOMAIN,
     problem: THIEF_PROBLEM,
     epistemic: true,
@@ -791,7 +791,7 @@ export const EXAMPLES: Example[] = [
     id: 'grapevine',
     name: 'Grapevine (gossip)',
     description:
-      'The classic gossip problem: an agent shares a secret with everyone in the same room. The goal is for b to learn a’s secret while c does not, so the plan first moves c out of the room, then a shares: (move_c_l1_l2) (share_a_a_l1). (RP-MEP / PDKBDDL.)',
+      "The classic gossip problem: an agent shares a secret with everyone in the same room. The goal is for b to learn a's secret while c does not, so the plan first moves c out of the room, then a shares: (move_c_l1_l2) (share_a_a_l1). (RP-MEP / PDKBDDL.)",
     domain: GRAPEVINE_DOMAIN,
     problem: GRAPEVINE_PROBLEM,
     epistemic: true,

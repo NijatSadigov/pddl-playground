@@ -1,6 +1,6 @@
 // Runs Pyodide + pyperplan in a Web Worker (a background thread) so solving and
-// the initial WASM load never block the main thread — the UI stays responsive
-// instead of freezing during a solve or "Compare all".
+// the initial WASM load never block the main thread. The UI stays responsive
+// during a solve or "Compare all".
 
 const PYODIDE_VERSION = 'v0.28.0';
 const PYODIDE_INDEX_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
@@ -50,7 +50,7 @@ def solve(domain_text, problem_text, search_name, heuristic_name):
                        'elapsedMs': elapsed_ms})
 `;
 
-// Minimal typed view of the worker global, so we don't need the WebWorker lib.
+// Minimal typed view of the worker global, avoiding the WebWorker lib dependency.
 const ctx = self as unknown as {
   postMessage: (msg: unknown) => void;
   addEventListener: (type: 'message', cb: (e: MessageEvent) => void) => void;
